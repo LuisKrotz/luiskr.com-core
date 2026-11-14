@@ -26,15 +26,11 @@ import { portfolioWord } from '@core/locale/portfolio-word.js'
 import { rightsText } from '@core/locale/ui-text.js'
 import { devWarn } from '@core/devlog.js'
 import { encodeMediaUrl, getOptimizedGravatar } from '@core/utils/media.js'
-import {
-  initMediaManifest,
-  mediaKeyExists,
-  mediaRungs,
-  onMediaManifest,
-} from '@core/utils/media/manifest.js'
+import { fetchFirebaseDb } from '@core/utils/data/db.js'
+import { CMS_KEYS } from '@core/tokens/data/cms-keys.js'
+import { initMediaManifest, mediaKeyExists, mediaRungs } from '@core/utils/media/manifest.js'
 import { smallMediaBox } from '@core/utils/media/policy.js'
 import { qrSvg } from '@core/utils/print/qr.js'
-import { installPrintWarm } from '@core/utils/print/warm-bridge.js'
 import { A11Y_CLASSES } from '@core/tokens/classes/a11y.js'
 import { ABOUT_CLASSES } from '@core/tokens/classes/about.js'
 import { ARIA_ATTRS } from '@core/tokens/attrs/aria.js'
@@ -61,10 +57,10 @@ import { APP_IDS } from '@core/tokens/ids/app.js'
 import { MEDIA } from '@core/tokens/media/suffixes.js'
 import { GRAVATAR_SIZES } from '@core/tokens/media/dimensions.js'
 import { MEDIA_CREDIT_LABELS, MEDIA_CREDIT_SEPARATOR } from '@core/tokens/media/credits.js'
-import { PREFETCH_CONFIG } from '@core/tokens/motion/prefetch.js'
 import { PRINT_TIMING } from '@core/tokens/motion/print.js'
 import { KEYS, MEDIA_QUERIES } from '@core/tokens/primitives.js'
 import { BASE_TITLE } from '@core/tokens/routes.js'
+import { LOCALES } from '@core/tokens/locales.js'
 import { ROUTE_NAMES } from '@core/tokens/routes/names.js'
 import { ROUTE_PATHS } from '@core/tokens/routes/paths.js'
 import { _B_EXPAND_MODAL, _B_SKELETON, _B_SKELETON_ABOUT } from '@core/tokens/base.js'
@@ -190,17 +186,11 @@ const emittedLinks = new Set<string>()
  *  its own code when a footer happens to link the same route. */
 const emittedRegionLinks = new Set<string>()
 
-/** Media URLs the browser is known to have fetched already — marked at
- *  each img's load resolution. The barrier-less beforeprint pass may
- *  only swap toward one of these: a cold swap trades a decoded screen
- *  src for a fetch that races the snapshot blank. */
-const warmReady = new Set<string>()
-
 /** Fetch/decode promises kicked by the prep pass — the gated entry
  *  (Ctrl/Cmd+P, window.print) awaits them before opening the dialog so
  *  the snapshot can't race a cold rung into a missing image. The
  *  beforeprint path never reads the list: menu-initiated jobs can't be
- *  deferred, so they hold decoded sources and floor-rung swaps instead. */
+ *  deferred, so they hold decoded sources and kicked rung swaps instead. */
 const pendingPrint: Promise<unknown>[] = []
 
 /** Count of pendingPrint entries that settled — the barrier's progress
@@ -672,17 +662,6 @@ const stemTopUrl = (stem: string): string => {
 }
 
 /**
- * Smallest manifest-proven .jpg for one stem — the floor rung. The
- * un-gated print path can't wait on a fetch, so an undecoded img swaps
- * here instead of holding a multi-megabyte original: a ~100KB cold pull
- * clears the snapshot window a multi-megabyte one never does. '' when
- * the manifest proves nothing.
- * @param stem Extensionless emission-encoded stem.
- * @returns Proven floor .jpg URL, or ''.
- */
-const stemFloorUrl = (stem: string): string => mediaRungs(stem)[0]?.jpg ?? ATTR_VALUES.EMPTY
-
-/**
  * Rungs skipped below the top for a small box the `-mobile` ladder can't
  * serve — mirrors the screen climb's box term (`ladderCeiling` drops two
  * for ≤768px boxes: the raw original and uncompressed tiers). Rungs are
@@ -819,73 +798,6 @@ const printImageUrl = (img: HTMLImageElement): string => {
   const stemmed = src.endsWith(MEDIA.THUMB_EXT) ? src.replace(MEDIA.THUMB_EXT, MEDIA.EXT) : src
 
   return stemPrintUrl(stemKey(stemmed), boxW) || stemmed
-}
-
-/**
- * Marks a resolved img's current URL as print-safe — `warmReady` is the
- * swap gate's "already fetched" proof, so it records what the browser
- * decoded rather than fetching anything itself. An idle pull of the
- * print rung is a page-speed tax a print pass may never repay: warming
- * only ever observes decoded bytes, never summons them. `currentSrc`
- * leads because it is the URL the network actually settled — the bare
- * attribute can still read a rung the loader swapped past.
- * @param img Image element that just finished loading on screen.
- */
-const warmPrintSource = (img: HTMLImageElement): void => {
-  const url = img.currentSrc || img.getAttribute(MEDIA_ATTRS.SRC) || ATTR_VALUES.EMPTY
-
-  if (url.startsWith(ATTR_VALUES.HTTP)) warmReady.add(url)
-}
-
-/**
- * Idle mark sweep over the whole composed tree — every resolved img's
- * current URL joins `warmReady` so a later barrier-less print pass can
- * prove the swap target is already fetched. Runs after install and
- * again whenever the MutationObserver sees new nodes (route renders
- * mount fresh media long after the first sweep). Marks only — repeated
- * sweeps cost a DOM walk and nothing else, and no idle pass ever pulls
- * bytes the screen didn't already need.
- */
-const sweepWarm = (): void => {
-  // Deferred sweeps can outlive their DOM — module-level queues arm
-  // before mount in node-eval contexts (the main.js warm-up suites run
-  // with no document at all), and a queued tick firing there must no-op
-  // instead of crashing the timer.
-  if (printing || typeof document === TYPE_STRINGS.UNDEFINED) return
-
-  for (const el of walkMedia(document)) {
-    if (el.tagName === HTML_TAGS.IMG.toUpperCase()) {
-      warmPrintSource(el as HTMLImageElement)
-    }
-  }
-}
-
-/** True while a sweep is queued for the next idle slice — coalesces bursts. */
-let sweepQueued = false
-
-/**
- * Defers one `sweepWarm` to the next idle slice — requestIdleCallback
- * with a bounded timeout when available, the short setTimeout fallback
- * otherwise (the same scheduler contract route-warmer uses). DOM growth
- * fires this per mutation batch; the `sweepQueued` flag collapses a
- * route render's many mutations into a single sweep.
- */
-const queueSweep = (): void => {
-  if (sweepQueued) return
-
-  sweepQueued = true
-
-  const run = (): void => {
-    sweepQueued = false
-
-    sweepWarm()
-  }
-
-  if (typeof window.requestIdleCallback === TYPE_STRINGS.FUNCTION) {
-    window.requestIdleCallback(run, { timeout: PREFETCH_CONFIG.IDLE_TIMEOUT })
-  } else {
-    setTimeout(run, PREFETCH_CONFIG.FALLBACK_DELAY)
-  }
 }
 
 /**
@@ -1438,53 +1350,37 @@ const upgradeImage = (img: HTMLImageElement): void => {
   // cache-warm one, resets the img's decode state inside the snapshot
   // window and prints blank where the standing src was ready: the
   // "sometimes no image" failure, and the reason refreshMedia on a
-  // committed job must never re-swap. A dead src takes whatever cold
-  // pull can win pixels back (floor rung first, top tier when the
-  // floor IS the dead URL); a merely-undecoded one prefers the top
-  // rung when its bytes already sit in cache (warmReady marks resolved
-  // currentSrcs — never prefetched, page speed stays clean) and
-  // otherwise trades its multi-megabyte original for the floor rung
-  // the snapshot window can still honour. A decoded src always stands
-  // — screen-rung quality beats a blank mat. Only manifest-proven
-  // candidates are ever written, so the swap can't fabricate a 404;
-  // when `best` comes back '' the element keeps whatever src already
-  // stands. The source caption still cites the canonical top URL
-  // (printSourceUrl re-derives it off the same stem), so the credit
-  // stays honest.
+  // committed job must never re-swap. A dead or undecoded src takes
+  // `best` outright — print deliberately resolves at the proven top
+  // tier even when the fetch outruns the snapshot window: a cold
+  // preview fills in as the rung lands, while a floor-rung stand-in
+  // would print a stretched ~100KB smear as the FINAL pixels (the
+  // blurred-media failure). A decoded src always stands — screen-rung
+  // quality beats a blank mat. Only manifest-proven candidates are
+  // ever written, so the swap can't fabricate a 404; when `best`
+  // comes back '' the element keeps whatever src already stands. The
+  // source caption still cites the canonical top URL (printSourceUrl
+  // re-derives it off the same stem), so the credit stays honest.
   if (best && best !== current) {
     const undecoded = !(img.complete && img.naturalWidth > 0)
     const currentDead = !current || (img.complete && img.naturalWidth === 0)
 
-    if (jobRunning) {
+    if (jobRunning || currentDead) {
       writeAttr(img, MEDIA_ATTRS.SRC, best)
-    } else if (currentDead) {
-      // Nothing to lose — the standing src can't paint, so any cold
-      // pull only wins pixels back; the floor rung clears the snapshot
-      // window more often than the top tier does. A floor equal to the
-      // dead src counts as no rescue — fall to `best`.
-      const floor = stemFloorUrl(stemKey(current))
-
-      writeAttr(img, MEDIA_ATTRS.SRC, floor && floor !== current ? floor : best)
     } else if (undecoded) {
       // Still cold and not broken — the lazy fetch never ran (below
-      // fold, native beforeprint). Holding the original means a
-      // multi-megabyte pull the snapshot always beats; a warm top rung
-      // costs nothing when its bytes already sit in cache, else the
-      // floor rung is the largest pull the window can still honour.
-      // A src this pass already wrote (recorded in `touched` by
-      // writeAttr) is an in-flight upgrade, not a lazy original —
-      // re-pointing it at the floor rung churns the URL inside the
-      // snapshot window (the downgrade race: blurry mozjpg-50 mats or
-      // blank frames where the climbing fetch was about to land), so a
-      // touched src always stands.
+      // fold, native beforeprint). A src this pass already wrote
+      // (recorded in `touched` by writeAttr) is an in-flight upgrade,
+      // not a lazy original — re-pointing it churns the URL inside the
+      // snapshot window (the downgrade race: blurry mid mats or blank
+      // frames where the climbing fetch was about to land), so a
+      // touched src always stands. A genuinely cold layer moves
+      // straight to `best` — the kick below starts the pull now and
+      // the preview paints it as the bytes land; a small-rung
+      // substitute would freeze a smear instead.
       const own = touched.get(img)?.has(MEDIA_ATTRS.SRC) === true
 
-      if (!own) {
-        const floor = stemFloorUrl(stemKey(current))
-        const pick = warmReady.has(best) ? best : floor
-
-        if (pick && pick !== current) writeAttr(img, MEDIA_ATTRS.SRC, pick)
-      }
+      if (!own) writeAttr(img, MEDIA_ATTRS.SRC, best)
     }
   }
 
@@ -2743,23 +2639,52 @@ const buildToc = (): HTMLElement | null => {
 }
 
 /**
- * Finds the about portrait's Gravatar URL in the live composed tree and
- * returns the cover-star <img> re-requesting it at the cover rung — the
- * same CMS picture the about section shows fronts the printed issue,
- * seated over the masthead's lower half (the magazine "name behind the
- * cover star" move). The node is built fresh rather than cloned so it
- * drops with the cover on exit; eager/high-priority attrs plus a decode
- * kick make the preview hold on the in-flight fetch the way upgraded
- * media does. Routes without the about section (project internals,
- * legal, docs) simply print the masthead cover without the portrait.
- * @returns The `.print-cover-photo` img, or null when no portrait exists.
+ * Builds the cover-star <img>: the Gravatar portrait — the person behind
+ * the masthead — re-requested at the cover rung and seated over the
+ * masthead's lower half (the magazine "name behind the cover star"
+ * move). The node is built fresh rather than cloned so it drops with
+ * the cover on exit; eager/high-priority attrs plus a decode kick make
+ * the preview hold on the in-flight fetch the way upgraded media does.
+ * On routes without the about section the CMS node's boot-chunk copy
+ * still resolves the URL — only a CMS that truly lacks a profilePicture
+ * falls back to the issue's feature still (or a masthead-only cover).
+ * @returns The `.print-cover-photo` img.
  */
-const coverPortrait = (): HTMLImageElement | null => {
-  // The cover star for this issue, in priority order:
-  // 1. The feature still — a plate's injected `.print-copy` (a scene's
-  //    captured frame, or a landscape hero's light-DOM copy) is the
-  //    exact frame the spread inside shows. Plates seat inside view
-  //    shadow roots, so the search walks the composed tree.
+/**
+ * Session-cached CMS `profilePicture` value — the Gravatar base URL the
+ * about section binds. Cached so a second print on the same visit never
+ * re-resolves the node; the SWR onUpdate arm keeps it fresh across CMS
+ * edits inside the session.
+ */
+let coverPortraitUrl: string | null = null
+
+/**
+ * The `pages/<locale>/ABOUT/profilePicture` node the cover star's URL
+ * lives under — the same CMS key the about section binds.
+ * @returns The database path for the profilePicture node.
+ */
+const coverPortraitPath = (): string => {
+  const lang = store.getters.getlang()
+
+  return (
+    `${lang.database}${lang.locale || LOCALES.EN}${lang.pagesPath}` +
+    `${CMS_KEYS.ABOUT}${CHAR_STRINGS.SLASH}${CMS_KEYS.PROFILE_PICTURE}`
+  )
+}
+
+/**
+ * The issue's feature-media cover still — a plate's injected `.print-copy`
+ * (a scene's captured frame, or a landscape hero's light-DOM copy) first,
+ * then the internal hero figure's own media at its top proven rung (a
+ * video hero falls to the manifest-proven `stem.mp4.jpg` still). '' when
+ * the route carries no feature media — the fallback for routes whose CMS
+ * has no profilePicture.
+ * @returns The feature still's URL, or ''.
+ */
+const featureCoverUrl = (): string => {
+  // Plates seat inside view shadow roots, so the search walks the
+  // composed tree; the first plate copy is the exact frame the spread
+  // inside shows.
   let src: string = ATTR_VALUES.EMPTY
 
   for (const el of walkMedia(document)) {
@@ -2776,44 +2701,16 @@ const coverPortrait = (): HTMLImageElement | null => {
     break
   }
 
-  // The hoisted hero plates are still detached here — seatPlates() only
-  // drops them after the covers build, so a queued plate's injected
-  // `.print-copy` (a video hero's swapped still) isn't document-walkable
-  // yet. The queue is read directly for the same pick.
+  // The internal hero figure's own media — the same cover asset the
+  // home card shows for the project, upgraded to its top proven rung.
+  // This runs inside coverPortrait's async fetch arm — seatPlates() has
+  // already seated every hoisted hero plate by then, so figures riding
+  // a plate ARE document-walkable (the hoist-stamped `print-plate-internal`
+  // context counts as the same pick as `.internal-main`). A video hero
+  // has no mozjpg ladder: its printable frame is the live decoded frame
+  // when one stands, else the manifest-proven `stem.mp4.jpg` still.
   if (!src) {
-    for (const plate of hoistedPlates) {
-      const copy = plate.querySelector(
-        `${HTML_TAGS.IMG}.${PRINT_CLASSES.COPY}`
-      ) as HTMLImageElement | null
-
-      if (copy?.src) {
-        src = copy.src
-
-        break
-      }
-    }
-  }
-
-  // 2. The internal hero figure's own media — the same cover asset the
-  //    home card shows for the project, upgraded to its top proven rung.
-  //    A figure riding a queued plate is already out of `.internal-main`
-  //    when this runs (the hoist moves it), so the plate variant counts
-  //    as the same context. A video hero has no mozjpg ladder: its
-  //    printable frame is the live decoded frame when one stands, else
-  //    the manifest-proven `stem.mp4.jpg` still — unproven falls
-  //    through to the portrait.
-  if (!src) {
-    // Figures inside a queued plate aren't document-walkable either, so
-    // the hero scan covers the live tree plus every queued plate.
-    const heroFigures = function* (): Generator<Element> {
-      yield* walkFigures(document)
-
-      for (const plate of hoistedPlates) {
-        yield* plate.querySelectorAll(COMPONENT_TAGS.MEDIA_FIGURE)
-      }
-    }
-
-    for (const figure of heroFigures()) {
+    for (const figure of walkFigures(document)) {
       if (
         !figure.closest(`.${INTERNAL_CLASSES.INTERNAL_MAIN}`) &&
         !figure.closest(`.${PRINT_CLASSES.PLATE_INTERNAL}`)
@@ -2847,11 +2744,28 @@ const coverPortrait = (): HTMLImageElement | null => {
     }
   }
 
-  // 3. The about portrait — the issue's own cover star (home, legal,
-  //    docs and any route with no feature media of its own).
-  let url = src
+  return src
+}
 
-  if (!url) {
+const coverPortrait = (): HTMLImageElement => {
+  const img = document.createElement(HTML_TAGS.IMG)
+
+  img.className = PRINT_CLASSES.COVER_PHOTO
+  img.alt = BASE_TITLE
+  img.setAttribute(MEDIA_ATTRS.LOADING, MEDIA_ATTRS.LOADING_EAGER)
+  img.setAttribute(MEDIA_ATTRS.FETCH_PRIORITY, MEDIA_ATTRS.FETCH_PRIORITY_HIGH)
+  img.setAttribute(MEDIA_ATTRS.DECODING, MEDIA_ATTRS.DECODING_SYNC)
+
+  // The cover star is the magazine's own Gravatar portrait on EVERY
+  // route — the person behind the masthead, not the feature's art (the
+  // project's still already fronts its spreads inside). Resolution order:
+  // the session-cached CMS value, then the live about-section img when
+  // the route renders one, then the CMS node fetch — its boot-chunk arm
+  // resolves without network and rides the gated barrier, so the dialog
+  // still waits on the portrait decode before it opens.
+  let grav: string = coverPortraitUrl ?? ATTR_VALUES.EMPTY
+
+  if (!grav) {
     for (const el of walkMedia(document)) {
       if (
         el.tagName !== HTML_TAGS.IMG.toUpperCase() ||
@@ -2860,31 +2774,53 @@ const coverPortrait = (): HTMLImageElement | null => {
         continue
       }
 
-      const grav = (el as HTMLImageElement).currentSrc || (el as HTMLImageElement).src
-
-      if (!grav) return null
-
-      url = getOptimizedGravatar(grav, GRAVATAR_SIZES.GRAVATAR_COVER)
+      grav = (el as HTMLImageElement).currentSrc || (el as HTMLImageElement).src
 
       break
     }
   }
 
-  if (!url) return null
+  if (grav) {
+    img.src = getOptimizedGravatar(grav, GRAVATAR_SIZES.GRAVATAR_COVER)
 
-  const img = document.createElement(HTML_TAGS.IMG)
+    trackPending(img.decode?.())
+  } else {
+    // The CMS node's boot-chunk copy resolves on a microtask — the img
+    // is built src-less now and fills in as the snapshot value lands,
+    // which the barrier's tracked chain carries through decode. A route
+    // whose CMS has no profilePicture falls back to the issue's feature
+    // still; a total miss drops the plate so no broken glyph prints.
+    const portraitJob = fetchFirebaseDb(coverPortraitPath(), (fresh) => {
+      const raw = fresh.val()
+      const str = typeof raw === TYPE_STRINGS.STRING ? (raw as string) : ATTR_VALUES.EMPTY
 
-  img.className = PRINT_CLASSES.COVER_PHOTO
-  img.src = url
-  img.alt = BASE_TITLE
-  img.setAttribute(MEDIA_ATTRS.LOADING, MEDIA_ATTRS.LOADING_EAGER)
-  img.setAttribute(MEDIA_ATTRS.FETCH_PRIORITY, MEDIA_ATTRS.FETCH_PRIORITY_HIGH)
-  img.setAttribute(MEDIA_ATTRS.DECODING, MEDIA_ATTRS.DECODING_SYNC)
+      if (str) coverPortraitUrl = str
+    }).then((snap) => {
+      const raw = snap.val()
+      const str = typeof raw === TYPE_STRINGS.STRING ? (raw as string) : ATTR_VALUES.EMPTY
 
-  // Same contract as upgradeImage — start the multi-hundred-KB pull
-  // now; the gated entry awaits it before the dialog so the cover
-  // star always lands on the sheet.
-  trackPending(img.decode?.())
+      if (str) coverPortraitUrl = str
+
+      const url = str ? getOptimizedGravatar(str, GRAVATAR_SIZES.GRAVATAR_COVER) : featureCoverUrl()
+
+      if (!url) {
+        img.remove()
+
+        return
+      }
+
+      img.src = url
+
+      // Decode rides the barrier but never removes the plate — a
+      // rejected decode still prints (the error listener drops only a
+      // genuinely broken image), matching the sync grav arm's contract.
+      trackPending(img.decode?.())
+    })
+
+    // fetchFirebaseDb resolves misses as a null snapshot — this chain
+    // cannot reject; the !url arm above already drops the plate.
+    trackPending(portraitJob)
+  }
 
   // A dead fetch drops the plate rather than printing a broken-image
   // box — the masthead/word/issue furniture still reads as a cover.
@@ -2934,9 +2870,7 @@ const buildCovers = (): [HTMLElement, HTMLElement, HTMLElement] => {
 
   cover.appendChild(coverTitle)
 
-  const portrait = coverPortrait()
-
-  if (portrait) cover.appendChild(portrait)
+  cover.appendChild(coverPortrait())
 
   const coverSub = document.createElement(HTML_TAGS.SPAN)
 
@@ -3213,13 +3147,8 @@ export const printJobActive = (): boolean => printing
  * Installs the print hooks once: the native before/afterprint pair plus the
  * matchMedia('print') change channel — some engines skip the events but
  * always flip the media query, so both paths feed the same enter/exit.
- * A capture-phase `load` listener rides every img that resolves on screen
- * (load doesn't bubble — capture reaches it) and marks its resolved URL
- * in `warmReady`, so the beforeprint swap gate can prove a rung's bytes
- * already sit in cache instead of gambling on a cold multi-megabyte pull
- * at snapshot time. Marks only — the warm pass never summons a fetch the
- * screen didn't already need; lazy/late-mounted layers are covered the
- * moment their own load lands — no polling, no observer.
+ * The media manifest decides every print source, so its fetch kicks here
+ * rather than waiting on the idle boot slot.
  */
 export const initPrintSupport = (): void => {
   if (installed) return
@@ -3231,12 +3160,8 @@ export const initPrintSupport = (): void => {
   // ladders don't exist, so a print landing inside that window retires
   // every media surface outright. Boot defers the fetch to idle, which
   // starves under the continuous rAF load this site keeps; kicking it
-  // here collapses the gap to one small JSON's network latency, and the
-  // on-land re-sweep warms the real srcs the manifest-gated re-render
-  // swaps into the wells.
+  // here collapses the gap to one small JSON's network latency.
   void initMediaManifest()
-
-  onMediaManifest(queueSweep)
 
   const nativePrint = window.print?.bind(window)
 
@@ -3329,46 +3254,4 @@ export const initPrintSupport = (): void => {
 
     armMmExit()
   })
-
-  // SSR/document-less evals (the boot defers past import in headless
-  // probes) — the load warm-up has no document to capture, so skip it.
-  if (typeof document === TYPE_STRINGS.UNDEFINED) return
-
-  // Shadow-boundary version of the document capture below — the bridge
-  // hands back every root registered before this module loaded; their
-  // already-settled imgs warm directly since their load events fired
-  // before a listener could exist.
-  for (const root of installPrintWarm(warmPrintSource)) {
-    for (const el of walkMedia(root)) {
-      if (el.tagName === HTML_TAGS.IMG.toUpperCase()) {
-        warmPrintSource(el as HTMLImageElement)
-      }
-    }
-  }
-
-  document.addEventListener(
-    WINDOW_EVENTS.LOAD,
-    (e) => {
-      const el = e.target as Element | null
-
-      if (el?.tagName === HTML_TAGS.IMG.toUpperCase()) {
-        warmPrintSource(el as HTMLImageElement)
-      }
-    },
-    true
-  )
-
-  // Proactive mark coverage: the load listener only fires for imgs that
-  // RESOLVE on screen after it installs — route-mounted media lands long
-  // after boot, so the observer re-arms a sweep that marks every
-  // already-decoded src. Attribute mutations and text churn are
-  // filtered out — only node growth schedules work.
-  queueSweep()
-
-  if (typeof MutationObserver === TYPE_STRINGS.FUNCTION) {
-    new MutationObserver(queueSweep).observe(document.documentElement, {
-      childList: true,
-      subtree: true,
-    })
-  }
 }

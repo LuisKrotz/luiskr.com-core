@@ -102,6 +102,7 @@ const mkBleedFigure = () => {
 describe('print oracle tails', () => {
   let origMatchMedia
   let origPrint
+  let origFetch
   let nativePrint
   let mqlListener = null
   let mqlMatches = false
@@ -134,7 +135,18 @@ describe('print oracle tails', () => {
 
     await initMediaManifest()
 
-    globalThis.fetch = realFetch
+    // The cover portrait's CMS node live-revalidation needs a differing
+    // STRING payload — the shared mockFetch returns {} — so this file's
+    // network arm answers a fresh gravatar URL: the boot-chunk snapshot
+    // still wins the first build, then onUpdate's string arm rewrites
+    // coverPortraitUrl mid-session (the cached-grav arm on the next
+    // cover build).
+    origFetch = realFetch
+    globalThis.fetch = () =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve('https://gravatar.com/avatar/freshportrait?v=1&size=1280'),
+      })
 
     // The CSSOM globals the oracle probes — the env binds window but not
     // the CSSRule constants, so without this the harvest early-returns.
@@ -154,6 +166,7 @@ describe('print oracle tails', () => {
     // Restore the env's no-CSSOM state — other suites assert the oracle's
     // early-return arm.
     delete globalThis.CSSRule
+    globalThis.fetch = origFetch
     window.matchMedia = origMatchMedia
     window.print = origPrint
   })
@@ -600,7 +613,7 @@ describe('print oracle tails', () => {
     expect(cold.classList.contains(PRINT_CLASSES.SRC)).toBe(true)
 
     // Pass 2: the layer wins a real src mid-job — the rescue arm un-marks
-    // it and the undecoded arm writes the floor rung, recording the
+    // it and the undecoded arm writes the proven top rung, recording the
     // landed src. Retired imgs stay out of imgDecided, so every later
     // re-entry still walks it.
     cold.setAttribute(MEDIA_ATTRS.SRC, `proj/deep${MEDIA.MOZ}${MEDIA.Q50}${MEDIA.EXT}`)
@@ -618,12 +631,13 @@ describe('print oracle tails', () => {
     fireBeforePrint()
 
     expect(cold.classList.contains(PRINT_CLASSES.SRC)).toBe(false)
-    expect(cold.getAttribute(MEDIA_ATTRS.SRC)).toBe(`proj/deep${MEDIA.EXT}`)
+    expect(cold.getAttribute(MEDIA_ATTRS.SRC)).toBe(
+      `proj/deep${MEDIA.MOZ}${MEDIA.Q100}${MEDIA.EXT}`
+    )
     expect(fresh.hasAttribute(COMMON_ATTRS.STYLE)).toBe(false)
 
     // Pass 3: the same layer re-walks with its src now recorded — the
-    // touched-src arm stands it instead of churning the URL back to the
-    // floor rung inside the snapshot window.
+    // touched-src arm stands it instead of churning the URL mid-job.
     cold.setAttribute(MEDIA_ATTRS.SRC, `proj/deep${MEDIA.MOZ}${MEDIA.Q50}${MEDIA.EXT}`)
 
     fireBeforePrint()

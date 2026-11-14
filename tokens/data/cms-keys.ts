@@ -37,6 +37,7 @@ export const CMS_KEYS = Object.freeze({
   APP: 'APP',
   HOME: _K_HOME,
   ABOUT: _B_ABOUT,
+  PROFILE_PICTURE: 'profilePicture',
   PORTFOLIOLIST: 'portfoliolist',
   MEDIA: _K_MEDIA,
   EARTH_PLAYGROUND: _K_EARTH_PLAYGROUND,

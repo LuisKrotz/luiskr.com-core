@@ -86,7 +86,12 @@ export function renderFlagWebGL(flag: FlagWebGL, now: number): void {
     return
   }
 
-  flag.renderer.draw(flag, (now - flag.startTime) * 0.001)
+  // The shared renderer blits real pixels only when draw() commits —
+  // the painted gate is what lets the DOM swap out the SVG fallback.
+  if (flag.renderer.draw(flag, (now - flag.startTime) * 0.001)) {
+    flag.canvas.classList.remove(STATE_CLASSES.IS_FALLBACK)
+    flag.canvas.classList.add(STATE_CLASSES.IS_PAINTED)
+  }
 }
 
 /** Starts the shared-pool render loop (skipped under reduced motion). */

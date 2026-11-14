@@ -1473,6 +1473,27 @@
       page-break-inside: avoid;
     }
 
+    // Progressive-stack layers rendered inside this shadow — the LQIP
+    // thumb's blur+bleed-zoom and the high layer's opacity gate are
+    // screen contracts. print.ts retires replaced rungs to .print-src
+    // (the document sheet can't reach this shadow), so one unblurred,
+    // full-opacity layer per well is what paper paints.
+    .render-media {
+      &--thumb {
+        filter: none;
+        transform: none;
+        opacity: 1;
+      }
+
+      &--high {
+        opacity: 1;
+      }
+    }
+
+    .print-src {
+      display: none;
+    }
+
     &-main,
     &-description,
     &-extra,

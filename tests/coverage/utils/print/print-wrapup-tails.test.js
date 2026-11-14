@@ -3,8 +3,7 @@
  * @description Coverage tail for core/utils/print/print.ts — the wrap-up
  * branches the earlier tails never reached: the gated scroll sweep and
  * skeleton settle, the interleaved-beforeprint media refresh, the
- * warmReady mark-only load bookkeeping, the MutationObserver idle
- * sweep (plus its setTimeout fallback), decode-rejection retirements
+ * unconditional top-rung upgrade picks, decode-rejection retirements
  * (light-DOM anchors, emptied shadow hosts, orphaned captions), the
  * print-hide stylesheet harvest across shadow adoptedStyleSheets, the
  * bleed plate seating arms (in-place, hoist through shadow boundaries,
@@ -19,6 +18,7 @@ import { jest } from '@jest/globals'
 import { initPrintSupport, trackPrintJob, trackPrintNode } from '@core/utils/print/print.js'
 import { initMediaManifest } from '@core/utils/media/manifest.js'
 import router from '@core/router/router.js'
+import store from '@core/store.js'
 import { A11Y_CLASSES } from '@core/tokens/classes/a11y.js'
 import { ABOUT_CLASSES } from '@core/tokens/classes/about.js'
 import { ARIA_ATTRS } from '@core/tokens/attrs/aria.js'
@@ -46,7 +46,6 @@ import { APP_IDS } from '@core/tokens/ids/app.js'
 import { MEDIA } from '@core/tokens/media/suffixes.js'
 import { _B_SKELETON } from '@core/tokens/base.js'
 import { PRINT_TIMING } from '@core/tokens/motion/print.js'
-import { PREFETCH_CONFIG } from '@core/tokens/motion/prefetch.js'
 import { ROUTE_NAMES } from '@core/tokens/routes/names.js'
 import { KEYS } from '@core/tokens/primitives.js'
 import { BASE_TITLE } from '@core/tokens/routes.js'
@@ -207,53 +206,20 @@ describe('print wrapup tails', () => {
   let mqlListener = null
   let mqlMatches = false
   let nativePrint = null
-  let moCallback = null
-  let moObserved = null
   let origMatchMedia
   let origPrint
-  let origMutationObserver
   let origCssRule
   let origImage
-
-  /** Recording MutationObserver — the idle sweep's callback is fired by hand. */
-  class SpyMutationObserver {
-    /**
-     * @param {MutationCallback} cb The observer callback to capture.
-     */
-    constructor(cb) {
-      moCallback = cb
-    }
-    /**
-     * Records the observe() call.
-     * @param {Node} target Observation root.
-     * @param {MutationObserverInit} options Observation options.
-     */
-    observe(target, options) {
-      moObserved = { target, options }
-    }
-    /** No-op disconnect. */
-    disconnect() {}
-    /**
-     * Empty record queue.
-     * @returns Empty record list.
-     */
-    takeRecords() {
-      return []
-    }
-  }
+  let prevDb
 
   beforeAll(async () => {
     origMatchMedia = window.matchMedia
     origPrint = window.print
-    origMutationObserver = globalThis.MutationObserver
     origCssRule = globalThis.CSSRule
     origImage = window.Image
 
     // The CSSOM globals the harvest probes — absent in happy-dom.
     globalThis.CSSRule = { MEDIA_RULE: RULE_MEDIA, STYLE_RULE: RULE_STYLE }
-
-    globalThis.MutationObserver = SpyMutationObserver
-    window.MutationObserver = SpyMutationObserver
 
     // Live `matches` getter — tests move the query under armed timers.
     window.matchMedia = (query) => ({
@@ -286,13 +252,21 @@ describe('print wrapup tails', () => {
     window.print = nativePrint
 
     initPrintSupport()
+
+    // The cover star is the CMS profile picture first — the fixtures here
+    // exercise the feature-still fallback it rides on, so the profile path
+    // must miss: a null database prefix resolves neither the boot chunk
+    // nor a live node (the mocked REST returns {} — non-string), which
+    // keeps coverPortraitUrl unset and every cover build on the
+    // featureCoverUrl arm unless a test mounts the live about img.
+    prevDb = store.getters.getlang().database
+    store.getters.getlang().database = null
   })
 
   afterAll(() => {
+    store.getters.getlang().database = prevDb
     window.matchMedia = origMatchMedia
     window.print = origPrint
-    globalThis.MutationObserver = origMutationObserver
-    window.MutationObserver = origMutationObserver
     globalThis.CSSRule = origCssRule
     window.Image = origImage
   })
@@ -389,13 +363,12 @@ describe('print wrapup tails', () => {
     expect(nativePrint).toHaveBeenCalledTimes(2)
   })
 
-  test('load-warmed rungs arm the top-tier swap; unwarmed stems hold the floor', () => {
+  test('undecoded layers land the proven top rung; painted srcs stand', () => {
     const app = document.createElement(HTML_TAGS.DIV)
 
     app.id = APP_IDS.APP
 
-    // An img already resolved at the proven top rung — its load marks the
-    // URL warmReady cites as "bytes already in cache". It lives in its own
+    // An img already resolved at the proven top rung lives in its own
     // well so the same-stem dedup can't reach the cold layer below.
     const markBox = document.createElement(HTML_TAGS.DIV)
     const markImg = mkImg({
@@ -406,8 +379,8 @@ describe('print wrapup tails', () => {
 
     markBox.appendChild(markImg)
 
-    // In-flight (undecoded, not dead) mid-rung layer — the swap gate reads
-    // warmReady for the top rung and, finding it marked, writes best.
+    // In-flight (undecoded, not dead) mid-rung layer — the arm writes
+    // the stem's proven top rung unconditionally.
     const coldBox = document.createElement(HTML_TAGS.DIV)
     const coldImg = mkImg({
       src: `${CDN}/photo${MEDIA.MOZ}${MEDIA.Q50}${MEDIA.EXT}`,
@@ -417,8 +390,8 @@ describe('print wrapup tails', () => {
 
     coldBox.appendChild(coldImg)
 
-    // Same in-flight shape, different stem — nothing ever marked its top
-    // rung, so the arm holds the floor (its current src) instead.
+    // Same in-flight shape, different stem — the top rung lands whether
+    // or not its bytes were ever fetched on screen.
     const floorBox = document.createElement(HTML_TAGS.DIV)
     const floorImg = mkImg({
       src: `${CDN}/alt${MEDIA.MOZ}${MEDIA.Q50}${MEDIA.EXT}`,
@@ -428,8 +401,7 @@ describe('print wrapup tails', () => {
 
     floorBox.appendChild(floorImg)
 
-    // Loads that can never be a cache proof — a src-less img and a data:
-    // URI — mark nothing without throwing.
+    // A src-less img and a data: URI — retire arms stay put.
     const bareImg = mkImg({ complete: false }).img
     const dataImg = mkImg({
       src: 'data:image/png;base64,AA==',
@@ -439,22 +411,15 @@ describe('print wrapup tails', () => {
     app.append(markBox, coldBox, floorBox, bareImg, dataImg)
     document.body.appendChild(app)
 
-    markImg.dispatchEvent(new window.Event(WINDOW_EVENTS.LOAD))
-    markImg.dispatchEvent(new window.Event(WINDOW_EVENTS.LOAD))
-    bareImg.dispatchEvent(new window.Event(WINDOW_EVENTS.LOAD))
-    dataImg.dispatchEvent(new window.Event(WINDOW_EVENTS.LOAD))
-
     fireBeforePrint()
 
-    // warmReady.has(best) armed the swap — the top rung's bytes were
-    // already proven fetched, so the undecoded arm writes it.
+    // The undecoded arms write the stem's proven top rung — cold or not.
     expect(coldImg.getAttribute(MEDIA_ATTRS.SRC)).toBe(
       `${CDN}/photo${MEDIA.MOZ}${MEDIA.Q100}${MEDIA.EXT}`
     )
 
-    // Unwarmed stem → the arm keeps the floor rung standing.
     expect(floorImg.getAttribute(MEDIA_ATTRS.SRC)).toBe(
-      `${CDN}/alt${MEDIA.MOZ}${MEDIA.Q50}${MEDIA.EXT}`
+      `${CDN}/alt${MEDIA.MOZ}${MEDIA.Q100}${MEDIA.EXT}`
     )
 
     // The already-loaded layer stands — a decoded src is never touched.
@@ -1168,13 +1133,12 @@ describe('print wrapup tails', () => {
     expect(twinA.img.classList.contains(PRINT_CLASSES.SRC)).toBe(true)
     expect(twinB.img.classList.contains(PRINT_CLASSES.SRC)).toBe(false)
 
-    // The rescued layer won its src back and took the floor rung — a
-    // dead-standing src swaps only within the snapshot window, so the
-    // smallest proven pull wins over the top tier; src-less/data twins
-    // stayed marked.
+    // The rescued layer won its src back and took the proven top rung —
+    // a dead-standing src swaps to the stem's best tier outright;
+    // src-less/data twins stayed marked.
     expect(rescued.img.classList.contains(PRINT_CLASSES.SRC)).toBe(false)
     expect(rescued.img.getAttribute(MEDIA_ATTRS.SRC)).toBe(
-      `${CDN}/photo${MEDIA.MOZ}${MEDIA.Q50}${MEDIA.EXT}`
+      `${CDN}/photo${MEDIA.MOZ}${MEDIA.Q100}${MEDIA.EXT}`
     )
     expect(rescuedBare.img.classList.contains(PRINT_CLASSES.SRC)).toBe(true)
     expect(rescuedData.img.classList.contains(PRINT_CLASSES.SRC)).toBe(true)
@@ -1211,15 +1175,13 @@ describe('print wrapup tails', () => {
     expect(held.img.classList.contains(PRINT_CLASSES.SRC)).toBe(false)
   })
 
-  test('the upgrade guard holds an alive unwarmed swap and a mobile box picks the mobile stem', () => {
+  test('the upgrade guard holds an alive painted src and a mobile box picks the mobile stem', () => {
     const app = document.createElement(HTML_TAGS.DIV)
 
     app.id = APP_IDS.APP
 
-    // Alive (painted) img, unwarmed, mid-screen: the swap guard holds —
-    // a cold multi-megabyte pull can never race the snapshot. The cold
-    // stem is never warmed anywhere in the suite, so warmReady can't
-    // arm the swap either.
+    // Alive (painted) img mid-screen: a decoded src always stands —
+    // screen-rung quality beats churning a fetch mid-snapshot.
     const alive = mkImg({ src: `${CDN}/cold${MEDIA.EXT}`, naturalWidth: 50, decode: 'resolve' })
 
     // A dead src always swaps — paper shows the proven rung.
@@ -1258,7 +1220,9 @@ describe('print wrapup tails', () => {
     fireBeforePrint()
 
     expect(alive.img.getAttribute(MEDIA_ATTRS.SRC)).toBe(`${CDN}/cold${MEDIA.EXT}`)
-    expect(dead.img.getAttribute(MEDIA_ATTRS.SRC)).toBe(`${CDN}/dead${MEDIA.EXT}`)
+    expect(dead.img.getAttribute(MEDIA_ATTRS.SRC)).toBe(
+      `${CDN}/dead${MEDIA.MOZ}${MEDIA.Q100}${MEDIA.EXT}`
+    )
     expect(topped.img.getAttribute(MEDIA_ATTRS.SRC)).toBe(
       `${CDN}/top${MEDIA.MOZ}${MEDIA.Q100}${MEDIA.EXT}`
     )
@@ -1266,7 +1230,7 @@ describe('print wrapup tails', () => {
       `${CDN}/mob${MEDIA.MOBILE_SUFFIX}${MEDIA.EXT}`
     )
     expect(mobless.img.getAttribute(MEDIA_ATTRS.SRC)).toBe(
-      `${CDN}/alt${MEDIA.MOZ}${MEDIA.Q50}${MEDIA.EXT}`
+      `${CDN}/alt${MEDIA.MOZ}${MEDIA.Q75}${MEDIA.EXT}`
     )
   })
 
@@ -1355,7 +1319,7 @@ describe('print wrapup tails', () => {
     expect(document.querySelector(`.${PRINT_CLASSES.TOC}`)).toBeNull()
   })
 
-  test('the cover portrait rides plates, figure stems and the about image in order', () => {
+  test('the cover portrait rides plates, figure stems and the about image in order', async () => {
     const proto = window.HTMLImageElement.prototype
     const realDecode = proto.decode
 
@@ -1364,7 +1328,9 @@ describe('print wrapup tails', () => {
 
     document.title = `${BASE_TITLE} | ${TEST_TEXT.SECOND}`
 
-    // Arm 1: a landscape canvas plate's still is the cover star.
+    // Arm 1: a landscape canvas plate's still is the cover star — the
+    // CMS-miss fetch arm resolves the pick on a microtask, so the src
+    // lands after a tick.
     const landCanvas = document.createElement(HTML_TAGS.CANVAS)
 
     landCanvas.setAttribute(DATA_ATTRS.PRINT_LANDSCAPE, ATTR_VALUES.EMPTY)
@@ -1372,6 +1338,7 @@ describe('print wrapup tails', () => {
 
     document.body.appendChild(landCanvas)
     fireBeforePrint()
+    await wait(0)
 
     let portrait = document.querySelector(`.${PRINT_CLASSES.COVER_PHOTO}`)
 
@@ -1420,6 +1387,7 @@ describe('print wrapup tails', () => {
     // the stem'd hero ends it.
     document.body.append(sideFigure, heroOuter)
     fireBeforePrint()
+    await wait(0)
 
     portrait = document.querySelector(`.${PRINT_CLASSES.COVER_PHOTO}`)
 
@@ -1432,9 +1400,11 @@ describe('print wrapup tails', () => {
     // portrait pick can't inherit a leftover star.
     document.body.replaceChildren()
 
-    // Arm 3: an internal-main figure with no stem → falls to the about
-    // portrait image (gravatar/currentSrc chain). The nested-main wrap
-    // keeps the stem check non-null so the `if (stem)` false arm runs.
+    // Arm 3: the live about-section portrait wins over every feature
+    // still — the DOM arm resolves synchronously (no fetch, no wait).
+    // The nested-main wrap keeps the stem check non-null so the
+    // `if (stem)` false arm inside featureCoverUrl stays exercised
+    // only when the about img is absent.
     const bareOuter = document.createElement(HTML_TAGS.DIV)
 
     bareOuter.className = INTERNAL_CLASSES.INTERNAL_MAIN
@@ -1504,17 +1474,18 @@ describe('print wrapup tails', () => {
 
     document.body.append(bareMain2, emptyAbout)
     fireBeforePrint()
+    await wait(0)
 
     expect(document.querySelector(`.${PRINT_CLASSES.COVER_PHOTO}`)).toBeNull()
 
     proto.decode = realDecode
   })
 
-  test('the mutation sweep marks resolved imgs, coalesces and falls back without idle', async () => {
-    // The `warm` stem is suite-isolated — nothing else ever puts
-    // `warm-uncompressed` on an img src, so the mark can only come from
-    // this sweep. The marker sits decoded at the top rung; the in-flight
-    // `warm.jpg` layer's swap gate reads the mark and writes best.
+  test('undecoded imgs swap straight to the proven top rung — no warm gate', () => {
+    // The undecoded arm no longer consults a warm mark or a floor rung:
+    // any cold layer moves to the stem's proven top tier and the decode
+    // kick rides it in. `warm` is suite-isolated — nothing else puts it
+    // on an img src.
     const markBox = document.createElement(HTML_TAGS.DIV)
     const markImg = mkImg({
       src: `${CDN}/warm${MEDIA.MOZ}${MEDIA.Q100}${MEDIA.EXT}`,
@@ -1533,74 +1504,36 @@ describe('print wrapup tails', () => {
 
     coldBox.appendChild(coldImg)
 
-    const canvas = document.createElement(HTML_TAGS.CANVAS)
-
-    const app = document.createElement(HTML_TAGS.DIV)
-
-    app.id = APP_IDS.APP
-    app.append(markBox, coldBox, canvas)
-    document.body.appendChild(app)
-
-    // The install-time observer captured its callback at init.
-    expect(moObserved).toBeTruthy()
-    expect(moObserved.options).toMatchObject({ childList: true, subtree: true })
-
-    // A second callback while the sweep is still queued coalesces away.
-    moCallback([{ type: 'childList' }])
-    moCallback([{ type: 'childList' }])
-
-    await wait(PREFETCH_CONFIG.FALLBACK_DELAY + 60)
-
-    fireBeforePrint()
-
-    // The sweep marked the resolved top rung — warmReady armed the swap.
-    expect(coldImg.getAttribute(MEDIA_ATTRS.SRC)).toBe(
-      `${CDN}/warm${MEDIA.MOZ}${MEDIA.Q100}${MEDIA.EXT}`
-    )
-
-    // A sweep during the committed job no-ops outright — nothing throws.
-    moCallback([{ type: 'childList' }])
-
-    await wait(30)
-
-    fireAfterPrint()
-
-    // No requestIdleCallback → the bounded setTimeout fallback marks a
-    // fresh pair; `dead-uncompressed` is likewise suite-isolated so only
-    // this sweep could have marked it.
-    const realIdle = window.requestIdleCallback
-
-    window.requestIdleCallback = undefined
-
     const deadBox = document.createElement(HTML_TAGS.DIV)
-    const deadMark = mkImg({
-      src: `${CDN}/dead${MEDIA.MOZ}${MEDIA.Q100}${MEDIA.EXT}`,
-      naturalWidth: 50,
-      decode: 'resolve',
-    }).img
-
-    deadBox.appendChild(deadMark)
-
-    const deadColdBox = document.createElement(HTML_TAGS.DIV)
     const deadCold = mkImg({
       src: `${CDN}/dead${MEDIA.EXT}`,
       complete: false,
       decode: 'resolve',
     }).img
 
-    deadColdBox.appendChild(deadCold)
-    app.append(deadBox, deadColdBox)
+    deadBox.appendChild(deadCold)
 
-    moCallback([{ type: 'childList' }])
+    const canvas = document.createElement(HTML_TAGS.CANVAS)
 
-    await wait(PREFETCH_CONFIG.FALLBACK_DELAY + 60)
+    const app = document.createElement(HTML_TAGS.DIV)
 
-    window.requestIdleCallback = realIdle
+    app.id = APP_IDS.APP
+    app.append(markBox, coldBox, deadBox, canvas)
+    document.body.appendChild(app)
 
     fireBeforePrint()
 
+    // No pre-warming at all — the cold layers land the proven top rung.
+    expect(coldImg.getAttribute(MEDIA_ATTRS.SRC)).toBe(
+      `${CDN}/warm${MEDIA.MOZ}${MEDIA.Q100}${MEDIA.EXT}`
+    )
     expect(deadCold.getAttribute(MEDIA_ATTRS.SRC)).toBe(
       `${CDN}/dead${MEDIA.MOZ}${MEDIA.Q100}${MEDIA.EXT}`
+    )
+
+    // The decoded layer stands — a painted src is never churned.
+    expect(markImg.getAttribute(MEDIA_ATTRS.SRC)).toBe(
+      `${CDN}/warm${MEDIA.MOZ}${MEDIA.Q100}${MEDIA.EXT}`
     )
 
     fireAfterPrint()

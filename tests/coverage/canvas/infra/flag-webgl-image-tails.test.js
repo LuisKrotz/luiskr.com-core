@@ -79,4 +79,40 @@ describe('flag-webgl image tails', () => {
 
     flag.destroy?.()
   })
+
+  test('check() covers single-flag and already-animating arms', async () => {
+    const { FlagWebGL } = await import('@core/utils/canvas/widgets/flag-webgl.js')
+    const { LOCALES } = await import('@core/constants.js')
+
+    // Single-flag row (cc2 null) — imgs[1] absent → the no-second-aspect arm.
+    const canvas = makeCanvas()
+
+    attachNoGL(canvas)
+
+    const flag = new FlagWebGL(canvas, { code: LOCALES.EN, cc: 'us', cc2: null })
+
+    flag.renderer = flagRenderer
+
+    const renderer = flag.renderer
+
+    if (renderer?.images) {
+      renderer.images.set('us', {
+        complete: true,
+        naturalWidth: 10,
+        naturalHeight: 5,
+        addEventListener() {},
+      })
+
+      // The wave loop already owns the clock when the image resolves —
+      // no static repaint lands on top of a running animation.
+      flag.animId = 1
+      flag.loadImages()
+      expect(flag.isLoaded).toBe(true)
+      expect(flag.aspect1).toBe(2)
+
+      renderer.images.delete('eun')
+    }
+
+    flag.destroy?.()
+  })
 })

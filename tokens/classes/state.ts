@@ -15,6 +15,10 @@ export const STATE_CLASSES = Object.freeze({
   ACTIVE: _K_ACTIVE,
   IS_OPEN: 'is-open',
   IS_FALLBACK: 'is-fallback',
+  /** The canvas painted at least one real frame — fallback/placeholder
+   *  layers (flag SVGs) only swap out once actual pixels stand, so a
+   *  mounted-but-still-initializing canvas never blacks out the slot. */
+  IS_PAINTED: 'is-painted',
   HAS_FALLBACK: 'has-fallback',
   IS_SAFARI: 'is-safari',
   /** Document-level live-scroll marker — set by utils/motion/scroll-state

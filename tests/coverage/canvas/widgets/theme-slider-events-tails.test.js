@@ -22,7 +22,6 @@ let fakeWidget = null
 jest.unstable_mockModule('@core/utils/gpu/webgpu-widget.js', () => ({
   hasWebGpu: () => mockGpu,
   mountWebGpuWidget: async () => mountResult,
-  warmWidgetArtifacts: () => undefined,
 }))
 
 /** Fresh-imports the slider class — picks up the per-test mock state. */

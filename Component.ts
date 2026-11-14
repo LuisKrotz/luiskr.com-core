@@ -10,6 +10,9 @@
  *   interruption, and GPU layer invalidation on every state update. Re-parsing a
  *   stylesheet also tears down composited layers, which was the source of visible
  *   flicker on skeleton/canvas surfaces before the split existed.
+ * - The loading skeleton is pure CSS — `.skeleton-*` placeholders paint
+ *   the shimmer themselves; syncSkeletonShimmer() only watches renders so
+ *   arriving content still gets the content-in fade.
  * - Event listeners registered via addScopedListener() are automatically removed
  *   when the element disconnects.
  * - Store subscriptions registered via subscribe() are automatically unsubscribed
@@ -35,12 +38,7 @@ import {
   type TieredStyles,
 } from '@core/utils/responsive-css.js'
 import { devWarn } from '@core/devlog.js'
-import { bindPrintWarm } from '@core/utils/print/warm-bridge.js'
-import {
-  syncSkeletonLayer,
-  destroySkeletonLayer,
-} from '@core/utils/canvas/loaders/skeleton-webgl.js'
-import type { SkeletonWebGL } from '@core/utils/canvas/loaders/skeleton-webgl.js'
+import { syncSkeletonShimmer, destroySkeletonShimmer } from '@core/utils/motion/skeleton-shimmer.js'
 
 /**
  * Module-level CSSStyleSheet cache keyed by the full style text. Each unique
@@ -88,8 +86,8 @@ type ScopedStore = { subscribe(_fn: () => void): () => void }
  *  1. Shadow root + one stylesheet injection strategy (adoptedStyleSheets
  *     with a shared-sheet cache, `<style>` fallback on old engines);
  *  2. `setState → render → _updateDom` reactive cycle;
- *  3. automatic teardown — scoped listeners, store subs, and the WebGL
- *     skeleton layer are released in disconnectedCallback;
+ *  3. automatic teardown — scoped listeners, store subs, and the
+ *     skeleton shimmer sync are released in disconnectedCallback;
  *  4. lifecycle hooks subclasses implement: render(), onInit, onMounted,
  *     onUpdated, onStoreUpdate(store), onDestroy.
  */
@@ -171,9 +169,6 @@ export class BaseComponent extends HTMLElement {
    */
   _contentNode: HTMLElement | Element | null = null
 
-  /** Live WebGL skeleton layer, owned by syncSkeletonLayer()/destroySkeletonLayer(). */
-  _skeletonLayer: SkeletonWebGL | null = null
-
   /** Reactive state bag — written only through setState() so updates always re-render. */
   public state: ComponentState = {}
 
@@ -209,10 +204,6 @@ export class BaseComponent extends HTMLElement {
 
     this.attachShadow({ mode: COMMON_ATTRS.OPEN as ShadowRootMode })
 
-    // `load` never crosses a shadow boundary — register this root so the
-    // print module's img warm-up can see its layers resolving on screen.
-    bindPrintWarm(this.shadowRoot)
-
     this._componentStyles = styles
   }
 
@@ -239,7 +230,7 @@ export class BaseComponent extends HTMLElement {
    * DOM insertion — runs onInit (data setup), the one-time style/content
    * build (_renderInitial), then onMounted + onUpdated so a first render is
    * indistinguishable from an update, and finally registers this element
-   * with the WebGL skeleton scanner (no-op when no skeletons are present).
+   * with the skeleton shimmer sync (no-op when no skeletons are present).
    * Per the Custom Elements spec this callback can fire multiple times —
    * every branch below is written to be idempotent on re-mount.
    */
@@ -249,12 +240,12 @@ export class BaseComponent extends HTMLElement {
     this._isMounted = true
     this.onMounted?.()
     this.onUpdated?.()
-    syncSkeletonLayer(this)
+    syncSkeletonShimmer(this)
   }
 
   /**
    * DOM removal — tears down in reverse order: scoped listeners, store
-   * subscriptions, the WebGL skeleton layer for this element, then the
+   * subscriptions, the skeleton shimmer sync for this element, then the
    * subclass's onDestroy (engine/audio/observer cleanup). `_isMounted` flips
    * first so an in-flight store push during teardown hits the guard in
    * subscribe() rather than rendering into a disconnecting root.
@@ -265,7 +256,7 @@ export class BaseComponent extends HTMLElement {
     this._eventDisposers = []
     this._storeUnsubscribers.forEach((unsub) => unsub())
     this._storeUnsubscribers = []
-    destroySkeletonLayer(this)
+    destroySkeletonShimmer(this)
 
     if (this._tierGrowOff) {
       this._tierGrowOff()
@@ -631,7 +622,7 @@ export class BaseComponent extends HTMLElement {
 
     this._applyRenderOutput(this.render())
     this.onUpdated?.()
-    syncSkeletonLayer(this)
+    syncSkeletonShimmer(this)
   }
 
   /**

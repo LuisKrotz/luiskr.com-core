@@ -13,8 +13,8 @@
  */
 import { jest } from '@jest/globals'
 import { initPrintSupport } from '@core/utils/print/print.js'
-import { bindPrintWarm } from '@core/utils/print/warm-bridge.js'
 import { initMediaManifest } from '@core/utils/media/manifest.js'
+import store from '@core/store.js'
 import { ARIA_ATTRS } from '@core/tokens/attrs/aria.js'
 import { COMMON_ATTRS } from '@core/tokens/attrs/common.js'
 import { DATA_ATTRS } from '@core/tokens/attrs/data.js'
@@ -101,6 +101,7 @@ describe('print utils tails', () => {
   let mqlListener = null
   let mqlMatches = false
   let origMatchMedia
+  let prevDb
 
   beforeAll(async () => {
     origMatchMedia = window.matchMedia
@@ -133,9 +134,19 @@ describe('print utils tails', () => {
     await initMediaManifest()
 
     globalThis.fetch = realFetch
+
+    // The cover star is the CMS profile picture first — the fixtures here
+    // exercise the feature-still fallback it rides on, so the profile path
+    // must miss: a null database prefix resolves neither the boot chunk
+    // nor a live node (the mocked REST returns {} — non-string), which
+    // keeps coverPortraitUrl unset and every cover build on the
+    // featureCoverUrl arm.
+    prevDb = store.getters.getlang().database
+    store.getters.getlang().database = null
   })
 
   afterAll(() => {
+    store.getters.getlang().database = prevDb
     window.matchMedia = origMatchMedia
   })
 
@@ -409,15 +420,6 @@ describe('print utils tails', () => {
     const stray = document.createElement(HTML_TAGS.IMG)
 
     document.body.appendChild(stray)
-
-    // Upgrades only swap to URLs a completed screen load already warmed
-    // into the HTTP cache — fire the loads the warm listener rides.
-    // Shadow-bound imgs warm through the per-root bridge (`load` is
-    // non-composed, so the document capture listener can't see them).
-    galA.dispatchEvent(new window.Event(WINDOW_EVENTS.LOAD))
-    galB.dispatchEvent(new window.Event(WINDOW_EVENTS.LOAD))
-    bindPrintWarm(shadow)
-    shThumb.dispatchEvent(new window.Event(WINDOW_EVENTS.LOAD))
 
     fireBeforePrint()
 
@@ -962,7 +964,7 @@ describe('print utils tails', () => {
     nestShadow.appendChild(nested)
     document.body.appendChild(nestHost)
 
-    // Src-less high layer whose stem's rungs were NEVER warmed: the
+    // Src-less high layer on a stem never fetched on screen: the
     // promoted URL is a cold pull, but print quality wins over preview
     // latency — the layer takes the manifest-proven rung outright and
     // the now-redundant thumb sibling retires under the same stem.
@@ -983,13 +985,6 @@ describe('print utils tails', () => {
     coldShadow.appendChild(coldThumb)
     coldShadow.appendChild(coldHigh)
     document.body.appendChild(coldFig)
-
-    // Warm the rungs the upgrades need — shadow imgs ride the per-root
-    // bridge listener (`load` is non-composed past the boundary).
-    bindPrintWarm(strayShadow)
-    tailMark.dispatchEvent(new window.Event(WINDOW_EVENTS.LOAD))
-    bindPrintWarm(lvShadow)
-    lvPoster.dispatchEvent(new window.Event(WINDOW_EVENTS.LOAD))
 
     fireBeforePrint()
 
@@ -1491,7 +1486,8 @@ describe('print utils tails', () => {
     expect(figBare.classList.contains(PRINT_CLASSES.BLEED_LANDSCAPE)).toBe(false)
     expect(mobHigh.getAttribute(MEDIA_ATTRS.SRC)).toBe(mobUrl)
 
-    // The load listener's `printing` arm — warming mid-pass is too late.
+    // A load dispatch mid-print is inert — no listener upgrades inside
+    // the committed window.
     const duringImg = document.createElement(HTML_TAGS.IMG)
 
     document.body.appendChild(duringImg)
@@ -1502,8 +1498,8 @@ describe('print utils tails', () => {
     expect(fig.classList.contains(PRINT_CLASSES.BLEED)).toBe(false)
     expect(fig.classList.contains(PRINT_CLASSES.BLEED_LANDSCAPE)).toBe(false)
 
-    // Warm path — the proven top rung is prefetched through a detached
-    // Image; the second load of the same img hits the `warmed` dedup.
+    // Ladder-probe arms in media.ts — a detached Image fetches the next
+    // rung; the second load of the same img hits its reached-tier dedup.
     const warmImg = document.createElement(HTML_TAGS.IMG)
 
     warmImg.setAttribute(MEDIA_ATTRS.SRC, `https://cdn.example/photo${MEDIA.EXT}`)
@@ -1828,11 +1824,14 @@ describe('print utils tails', () => {
     fireAfterPrint()
   })
 
-  test('video-hero internal figure fronts the cover with its proven still', () => {
+  test('video-hero internal figure fronts the cover with its proven still', async () => {
     mkArticle()
 
     // Hero plate context — the figure lives in .internal-main and its
-    // stem has no image ladder, only the emitted video still.
+    // stem has no image ladder, only the emitted video still. The cover
+    // star is the CMS profile picture first; with the profile path
+    // nulled for the file the fetch arm falls to featureCoverUrl, and
+    // its src lands on a microtask after the synchronous prep pass.
     const main = document.createElement(HTML_TAGS.DIV)
 
     main.className = INTERNAL_CLASSES.INTERNAL_MAIN
@@ -1849,11 +1848,31 @@ describe('print utils tails', () => {
     document.body.appendChild(main)
 
     fireBeforePrint()
+    await new Promise((resolve) => setTimeout(resolve, 0))
 
     const portrait = document.querySelector(`.${PRINT_CLASSES.COVER_PHOTO}`)
 
     expect(portrait).toBeTruthy()
     expect(portrait.src.endsWith(`clip${MEDIA.VIDEO_EXT}${MEDIA.EXT}`)).toBe(true)
+
+    fireAfterPrint()
+  })
+
+  test('a missing lang locale falls back to EN in the portrait path', async () => {
+    mkArticle()
+
+    // The portrait-path builder guards a falsy locale — a render between
+    // store hydration and locale assignment must still resolve a path.
+    const prevLocale = store.getters.getlang().locale
+
+    store.getters.getlang().locale = ''
+
+    fireBeforePrint()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    store.getters.getlang().locale = prevLocale
+
+    expect(document.querySelector(`.${PRINT_CLASSES.COVER}`)).toBeTruthy()
 
     fireAfterPrint()
   })

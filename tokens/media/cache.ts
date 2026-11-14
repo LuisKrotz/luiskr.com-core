@@ -24,3 +24,26 @@ export const IDB_CONFIG = Object.freeze({
 export const CACHE_CONFIG = Object.freeze({
   FORCE_CACHE: 'force-cache',
 })
+
+/**
+ * Idle-prefetch tuning — background asset warming while the tab is
+ * hidden (`document.visibilitychange`). Kept conservative on purpose:
+ * the page must stay cheap to keep alive, so warming is throttled to a
+ * small concurrent pool of low-priority no-cors GETs and skips
+ * metered/slow connections entirely.
+ */
+export const IDLE_PREFETCH = Object.freeze({
+  /** Concurrent warm requests in flight at once. */
+  CONCURRENCY: 4,
+  /** Settle delay after the tab hides — transient tab switches never start a cycle. */
+  ARM_DELAY_MS: 1200,
+  /** fetch mode — opaque CDN GETs still land in the HTTP/image cache. */
+  MODE_NO_CORS: 'no-cors',
+  /** No cookies on the CDN bucket — keeps the warm request credentials-free. */
+  CREDENTIALS_OMIT: 'omit',
+  /** navigator.connection member names (non-standard but widely shipped). */
+  CONNECTION_SAVE_DATA: 'saveData',
+  CONNECTION_EFFECTIVE_TYPE: 'effectiveType',
+  /** effectiveType values treated as too constrained to warm in the background. */
+  SLOW_EFFECTIVE_TYPES: Object.freeze(['slow-2g', '2g']),
+})

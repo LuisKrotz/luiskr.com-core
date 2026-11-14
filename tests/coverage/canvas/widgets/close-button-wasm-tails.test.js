@@ -33,7 +33,6 @@ jest.unstable_mockModule('@core/utils/gpu/webgpu-widget.js', () => ({
 
     return mountResult
   },
-  warmWidgetArtifacts: () => undefined,
 }))
 
 /** Imports the class under test AFTER the mock is registered. */

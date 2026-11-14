@@ -5,10 +5,11 @@
  * one-artifact-per-animation architecture. Each `rust/<slug>/` crate
  * compiles to its own ~50KB `luiskr_<slug>.js`+`.wasm` pair under
  * `/wasm/<slug>/`; the bridge (`core/utils/gpu/webgpu-widget.ts`)
- * dynamic-imports it only when the widget's DOM surface mounts. The
- * skeleton is the exception: it loads FIRST, on the critical path,
- * because it's the loading placeholder itself. Uniform layouts mirror
- * each crate's `lib.rs` doc byte for byte — bump both together.
+ * dynamic-imports it only when the widget's DOM surface mounts — the
+ * loading skeleton is deliberately absent: the `.skeleton-*` DOM
+ * placeholders + CSS shimmer are the loading surface, no GPU needed.
+ * Uniform layouts mirror each crate's `lib.rs` doc byte for byte —
+ * bump both together.
  */
 
 import { ASSET_PATHS } from '@core/tokens/routes/paths.js'
@@ -31,8 +32,6 @@ export const GPU_WIDGET_KINDS = Object.freeze({
   CLOSE_BUTTON: 5,
   /** Fullscreen menu backdrop — fbm contour field. */
   MENU_BACKGROUND: 6,
-  /** Loading skeleton — morphing 0/1 glyph cells. */
-  SKELETON: 7,
   /** Mosaic letter-burn — ember/char particle sim. */
   BURN: 8,
   /** Media surface — decoded image/video textured quad. */
@@ -65,114 +64,90 @@ export const GPU_WIDGET_KINDS = Object.freeze({
  * `url` is `/wasm/<slug>/<pkg>.js` under public/; `cls` is the crate's
  * `#[wasm_bindgen]` struct name (each crate exports a differently-
  * named widget, so the bridge indexes the module dynamically).
- * `eager` marks the skeleton — the only artifact allowed on the
- * critical path since it IS the loading placeholder.
  * Frozen; consumers import members, never redeclare literals.
  */
 export const GPU_WIDGET_ARTIFACTS: Readonly<
-  Record<number, { readonly url: string; readonly cls: string; readonly eager: boolean }>
+  Record<number, { readonly url: string; readonly cls: string }>
 > = Object.freeze({
   /** burger — nav burger hairline bars. */
   [GPU_WIDGET_KINDS.BURGER]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}burger/luiskr_burger.js`,
     cls: 'Burger',
-    eager: false,
   }),
   /** flag — locale flag (two textures for split flags). */
   [GPU_WIDGET_KINDS.FLAG]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}flag/luiskr_flag.js`,
     cls: 'Flag',
-    eager: false,
   }),
   /** switch-slider — preference toggle. */
   [GPU_WIDGET_KINDS.SWITCH_SLIDER]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}switch-slider/luiskr_switch_slider.js`,
     cls: 'SwitchSlider',
-    eager: false,
   }),
   /** theme-slider — day/system/night slider. */
   [GPU_WIDGET_KINDS.THEME_SLIDER]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}theme-slider/luiskr_theme_slider.js`,
     cls: 'ThemeSlider',
-    eager: false,
   }),
   /** close-button — modal close control. */
   [GPU_WIDGET_KINDS.CLOSE_BUTTON]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}close-button/luiskr_close_button.js`,
     cls: 'CloseButton',
-    eager: false,
   }),
   /** menu-background — fullscreen menu contour field. */
   [GPU_WIDGET_KINDS.MENU_BACKGROUND]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}menu-background/luiskr_menu_background.js`,
     cls: 'MenuBackground',
-    eager: false,
-  }),
-  /** skeleton — the FIRST-loading artifact (the loading placeholder). */
-  [GPU_WIDGET_KINDS.SKELETON]: Object.freeze({
-    url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}skeleton/luiskr_skeleton.js`,
-    cls: 'Skeleton',
-    eager: true,
   }),
   /** burn — mosaic letter-burn particle sim. */
   [GPU_WIDGET_KINDS.BURN]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}burn/luiskr_burn.js`,
     cls: 'Burn',
-    eager: false,
   }),
   /** media — decoded image/video quad. */
   [GPU_WIDGET_KINDS.MEDIA]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}media/luiskr_media.js`,
     cls: 'Media',
-    eager: false,
   }),
   /** glitch — about-page VHS portrait corruption. */
   [GPU_WIDGET_KINDS.GLITCH]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}glitch/luiskr_glitch.js`,
     cls: 'Glitch',
-    eager: false,
   }),
   /** divider-sheen — footer hairline traveling band. */
   [GPU_WIDGET_KINDS.DIVIDER_SHEEN]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}divider-sheen/luiskr_divider_sheen.js`,
     cls: 'DividerSheen',
-    eager: false,
   }),
   /** text-draw — per-char writing animation over a raster atlas. */
   [GPU_WIDGET_KINDS.TEXT_DRAW]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}text-draw/luiskr_text_draw.js`,
     cls: 'TextDraw',
-    eager: false,
   }),
   /** ring-sheen — instanced mosaic/related tile border rings. */
   [GPU_WIDGET_KINDS.RING_SHEEN]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}ring-sheen/luiskr_ring_sheen.js`,
     cls: 'RingSheen',
-    eager: false,
   }),
   /** corner-brackets — button corner-bracket expansion. */
   [GPU_WIDGET_KINDS.CORNER_BRACKETS]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}corner-brackets/luiskr_corner_brackets.js`,
     cls: 'CornerBrackets',
-    eager: false,
   }),
   /** scene3d — the full-scene engine surface (mount via scene3d.ts). */
   [GPU_WIDGET_KINDS.SCENE3D]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}scene3d/luiskr_scene3d.js`,
     cls: 'Surface3d',
-    eager: false,
   }),
   /** genie — expand-modal composited-sheet mesh-warp + dock flash. */
   [GPU_WIDGET_KINDS.GENIE]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}genie/luiskr_genie.js`,
     cls: 'Genie',
-    eager: false,
   }),
   /** ring-fill — route-search go-button conic ring fill. */
   [GPU_WIDGET_KINDS.RING_FILL]: Object.freeze({
     url: `${ASSET_PATHS.WASM_WIDGETS_PREFIX}ring-fill/luiskr_ring_fill.js`,
     cls: 'RingFill',
-    eager: false,
   }),
 })
 
@@ -194,8 +169,6 @@ export const GPU_WIDGET_UNIFORM_F32S = Object.freeze({
   [GPU_WIDGET_KINDS.CLOSE_BUTTON]: 12,
   /** menu-bg: time, res(2), reveal, color(3), alpha, color2(3), pad, rect(4). */
   [GPU_WIDGET_KINDS.MENU_BACKGROUND]: 16,
-  /** skeleton: res(2), time, resolve, ink_alpha, count, pad(2), rect(4). */
-  [GPU_WIDGET_KINDS.SKELETON]: 12,
   /** glitch: res(2), time, hover, seed, cover(4), pad(7). */
   [GPU_WIDGET_KINDS.GLITCH]: 16,
   /** divider: res(2), time, pad, border(4), accent(4), rect(4). */
@@ -224,8 +197,8 @@ export const GPU_WIDGET_DRIVE = Object.freeze({
   RAF: 'raf',
   /**
    * Caller owns the loop — for widgets whose host already runs a
-   * frame-scheduled loop with its own semantics (skeleton's
-   * frame-skip + resolve-out, burn's stage pump). The bridge skips
+   * frame-scheduled loop with its own semantics (flag's hover easing,
+   * burn's stage pump). The bridge skips
    * rAF AND the resize listener entirely; the caller drives
    * `widget.frame(dt)`, `widget.set_size(css)`, and
    * `widget.resize(device)` through its existing paths so there is

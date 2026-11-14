@@ -27,7 +27,6 @@ let fakeWidget = null
 jest.unstable_mockModule('@core/utils/gpu/webgpu-widget.js', () => ({
   hasWebGpu: () => mockGpu,
   mountWebGpuWidget: async () => mountResult,
-  warmWidgetArtifacts: () => undefined,
 }))
 
 /** Imports the class under test AFTER the mock is registered. */

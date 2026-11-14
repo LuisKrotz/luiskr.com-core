@@ -13,6 +13,8 @@ import { describe, test, expect, beforeEach, jest } from '@jest/globals'
 import { HTML_TAGS } from '@core/tokens/elements/html.js'
 import { LOCALES } from '@core/tokens/locales.js'
 import { GPU_FLAG_ANIMS } from '@core/tokens/motion/gpu-widgets.js'
+import { FLAG_CLASSES } from '@core/tokens/classes/flags.js'
+import { FLAG_DIMENSIONS } from '@core/tokens/media/dimensions.js'
 import { MOUSE_EVENTS } from '@core/tokens/events/dom.js'
 import { createMockGL, createMock2D } from '@tests/fixtures/mock-webgl.js'
 import store from '@core/store.js'
@@ -33,7 +35,6 @@ let fakeWidget = null
 jest.unstable_mockModule('@core/utils/gpu/webgpu-widget.js', () => ({
   hasWebGpu: () => mockGpu,
   mountWebGpuWidget: async () => mountResult,
-  warmWidgetArtifacts: () => undefined,
 }))
 
 /** Mutable decoder throw flag — simulates a rejecting decode. */
@@ -57,6 +58,7 @@ const loadModules = async () => ({
   resizeToNaturalAspect: (await import('@core/utils/canvas/widgets/flag/anim.js'))
     .resizeToNaturalAspect,
   renderFlagWasm: (await import('@core/utils/canvas/widgets/flag/loop.js')).renderFlagWasm,
+  renderFlagWebGL: (await import('@core/utils/canvas/widgets/flag/loop.js')).renderFlagWebGL,
 })
 
 /** Flushes the mount + decode promises and a couple of frames. */
@@ -279,6 +281,41 @@ describe('flag wasm path', () => {
     parent.remove()
   })
 
+  test('setReducedMotion swaps the loop for a static frame both ways', async () => {
+    const { FlagWebGL } = await loadModules()
+    const canvas = makeCanvas()
+
+    const flag = new FlagWebGL(canvas, lang(LOCALES.EN, 'us'))
+
+    await flush()
+
+    // Entering reduced motion renders one settled frame.
+    flag.setReducedMotion(true)
+
+    // Leaving it with no loop running restarts the animation clock.
+    flag.animId = null
+    flag.setReducedMotion(false)
+    expect(flag.animId).not.toBeNull()
+
+    // Leaving it while the loop already runs keeps that loop (no-op arm).
+    flag.setReducedMotion(false)
+
+    flag.destroy()
+  })
+
+  test('a nav-sized canvas mounts at the compact height tier', async () => {
+    const { FlagWebGL } = await loadModules()
+    const canvas = makeCanvas()
+
+    canvas.classList.add(FLAG_CLASSES.FLAG_CANVAS_NAV)
+
+    const flag = new FlagWebGL(canvas, lang(LOCALES.EN, 'us'))
+
+    expect(flag.height).toBe(FLAG_DIMENSIONS.FLAG_NAV_HEIGHT)
+
+    flag.destroy()
+  })
+
   test('bindEvents latches — a remount does not re-bind hover', async () => {
     const { FlagWebGL } = await loadModules()
     const canvas = makeCanvas()
@@ -456,9 +493,47 @@ describe('flag wasm path', () => {
   })
 
   test('renderFlagWasm no-ops without a handle; resizeToNaturalAspect tolerates missing window/dpr', async () => {
-    const { renderFlagWasm, resizeToNaturalAspect } = await loadModules()
+    const { renderFlagWasm, renderFlagWebGL, resizeToNaturalAspect } = await loadModules()
+    const { STATE_CLASSES } = await import('@core/tokens/classes/state.js')
 
     renderFlagWasm({ _wasm: null }, 0)
+
+    // The wasm crate consumes dt DELTAS — a primed _wasmT takes the
+    // `t - _wasmT` arm while a cold start takes the raw `t` arm.
+    const frame = jest.fn()
+    const hot = {
+      _wasm: { widget: { set_state: jest.fn(), frame } },
+      _wasmT: 2,
+      hoverLevel: 0,
+      lang: { code: LOCALES.EN, cc: 'us', cc2: null },
+      _splitPoint: () => 0,
+      startTime: 0,
+    }
+
+    renderFlagWasm(hot, 3000)
+    expect(frame).toHaveBeenLastCalledWith(1)
+
+    renderFlagWasm(hot, 3500)
+    expect(frame).toHaveBeenLastCalledWith(0.5)
+
+    // The GL path stamps the painted gate once draw() commits real
+    // pixels — the born-fallback class clears and the SVG hands off.
+    const glCanvas = document.createElement(HTML_TAGS.CANVAS)
+
+    glCanvas.classList.add(STATE_CLASSES.IS_FALLBACK)
+
+    const glFlag = {
+      _paused: false,
+      _wasm: null,
+      renderer: { gl: {}, draw: () => true },
+      canvas: glCanvas,
+      startTime: 0,
+    }
+
+    renderFlagWebGL(glFlag, 16)
+
+    expect(glCanvas.classList.contains(STATE_CLASSES.IS_PAINTED)).toBe(true)
+    expect(glCanvas.classList.contains(STATE_CLASSES.IS_FALLBACK)).toBe(false)
 
     const flag = {
       height: 32,

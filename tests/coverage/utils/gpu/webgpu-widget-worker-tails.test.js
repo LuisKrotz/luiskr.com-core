@@ -107,7 +107,7 @@ describe('webgpu-widget render-worker route', () => {
 
   it('routes a mount through the worker — proxy forwards frame/resize/calls, dims, probe, destroy', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
 
     expect(h).not.toBeNull()
     expect(h.canvas).toBe(canvas)
@@ -120,7 +120,7 @@ describe('webgpu-widget render-worker route', () => {
 
     expect(mountMsg.data.canvas).toBe(offscreenLast)
     expect(mountMsg.transfer).toContain(offscreenLast)
-    expect(mountMsg.data.cls).toBe('Skeleton')
+    expect(mountMsg.data.cls).toBe('Burger')
 
     // Element dim writes forward as resize-dims posts.
     canvas.width = 640
@@ -168,7 +168,7 @@ describe('webgpu-widget render-worker route', () => {
 
   it('manual drive mounts skip the worker pump and still proxy', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, undefined, {
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, undefined, {
       drive: GPU_WIDGET_DRIVE.MANUAL,
     })
 
@@ -184,7 +184,7 @@ describe('webgpu-widget render-worker route', () => {
 
   it('a dead report flips the proxy frame contract', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
     const worker = FakeWorker.last
     const wid = worker.posted.filter((m) => m.data.type === 'mount').pop().data.id
 
@@ -194,9 +194,35 @@ describe('webgpu-widget render-worker route', () => {
     h.destroy()
   })
 
+  it('the born-fallback stamp clears only when the worker reports painted', async () => {
+    const canvas = transferableCanvas()
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
+    const worker = FakeWorker.last
+    const wid = worker.posted.filter((m) => m.data.type === 'mount').pop().data.id
+
+    // Mount succeeded but no frame painted yet — the DOM fallback
+    // gates must still read the canvas as fallback.
+    expect(canvas.classList.contains(STATE_CLASSES.IS_FALLBACK)).toBe(true)
+    expect(canvas.classList.contains(STATE_CLASSES.IS_PAINTED)).toBe(false)
+
+    // Painted reports with no id and for an unknown id are no-ops.
+    worker.onmessage({ data: { type: 'painted' } })
+    worker.onmessage({ data: { type: 'painted', id: wid + 999 } })
+
+    expect(canvas.classList.contains(STATE_CLASSES.IS_FALLBACK)).toBe(true)
+
+    // The widget's own first-frame report graduates the canvas.
+    worker.onmessage({ data: { type: 'painted', id: wid } })
+
+    expect(canvas.classList.contains(STATE_CLASSES.IS_FALLBACK)).toBe(false)
+    expect(canvas.classList.contains(STATE_CLASSES.IS_PAINTED)).toBe(true)
+
+    h.destroy()
+  })
+
   it('frame-result alive:false also flips the contract', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
     const worker = FakeWorker.last
     const wid = worker.posted.filter((m) => m.data.type === 'mount').pop().data.id
 
@@ -221,7 +247,7 @@ describe('webgpu-widget render-worker route', () => {
 
     let loadCalls = 0
 
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () => {
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () => {
       loadCalls++
       throw new Error('artifact 404')
     })
@@ -249,7 +275,7 @@ describe('webgpu-widget render-worker route', () => {
       throw new Error('worker dead')
     }
 
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () => {
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () => {
       throw new Error('artifact 404')
     })
 
@@ -262,7 +288,7 @@ describe('webgpu-widget render-worker route', () => {
 
   it('call postMessage failure resolves null instead of rejecting', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
     const worker = FakeWorker.last
     const orig = worker.postMessage
 
@@ -278,7 +304,7 @@ describe('webgpu-widget render-worker route', () => {
 
   it('call replies with errors resolve null', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
 
     FakeWorker.responder = (d) =>
       d.type === 'call' ? { type: 'call-result', replyId: d.replyId, error: 'x' } : null
@@ -301,7 +327,7 @@ describe('webgpu-widget render-worker route', () => {
     jest.useFakeTimers()
 
     try {
-      const pending = mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () => {
+      const pending = mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () => {
         throw new Error('artifact 404')
       })
 
@@ -351,7 +377,7 @@ describe('webgpu-widget render-worker route', () => {
 
   it('malformed worker messages take the empty-data and missing-id arms', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
 
     expect(h).not.toBeNull()
 
@@ -376,7 +402,7 @@ describe('webgpu-widget render-worker route', () => {
     globalThis.ImageBitmap = class ImageBitmap {}
 
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
     const worker = FakeWorker.last
     const buf = new ArrayBuffer(4)
 
@@ -400,7 +426,7 @@ describe('webgpu-widget render-worker route', () => {
 
   it('call and probe deadlines resolve null', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
 
     // No call/probe-frame replies — the reply timers must expire.
     FakeWorker.responder = () => null
@@ -423,7 +449,7 @@ describe('webgpu-widget render-worker route', () => {
 
   it('a probe-result without numeric coverage resolves null', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
 
     FakeWorker.responder = (d) =>
       d.type === 'probe-frame' ? { type: 'probe-result', replyId: d.replyId } : null
@@ -434,7 +460,7 @@ describe('webgpu-widget render-worker route', () => {
 
   it('a throwing postMessage inside probe resolves null', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
     const worker = FakeWorker.last
     const orig = worker.postMessage
 
@@ -450,7 +476,7 @@ describe('webgpu-widget render-worker route', () => {
 
   it('a frame post throw flips the alive flag', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
     const worker = FakeWorker.last
     const orig = worker.postMessage
 
@@ -468,7 +494,7 @@ describe('webgpu-widget render-worker route', () => {
 
   it('dim setters coerce NaN to 0 and swallow dead-worker posts', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
 
     canvas.width = 'nope'
     canvas.height = 'nope'
@@ -501,7 +527,7 @@ describe('webgpu-widget render-worker route', () => {
     // routing failure and continue to the in-page loader.
     Object.freeze(canvas)
 
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () => {
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () => {
       throw new Error('artifact 404')
     })
 
@@ -516,7 +542,7 @@ describe('webgpu-widget render-worker route', () => {
     }
 
     // Falls through to the in-page mount — the throwing loader resolves null.
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () => {
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () => {
       throw new Error('artifact 404')
     })
 
@@ -529,7 +555,7 @@ describe('webgpu-widget render-worker route', () => {
     delete globalThis.IntersectionObserver
 
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
 
     expect(h).not.toBeNull()
 
@@ -541,7 +567,7 @@ describe('webgpu-widget render-worker route', () => {
   // rest of the file (module-level workerProbe reset).
   it('a worker error flushes pending work and latches the route off', async () => {
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
 
     expect(h).not.toBeNull()
 
@@ -560,7 +586,7 @@ describe('webgpu-widget render-worker route', () => {
     const spawned = FakeWorker.instances.length
 
     expect(
-      await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, transferableCanvas(), async () => {
+      await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, transferableCanvas(), async () => {
         throw new Error('artifact 404')
       })
     ).toBeNull()

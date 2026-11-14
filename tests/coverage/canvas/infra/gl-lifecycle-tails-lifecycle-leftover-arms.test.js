@@ -5,7 +5,6 @@
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals'
 import { releaseQuadGL } from '@core/utils/canvas/gl-lifecycle.js'
 import { MenuBackgroundWebGL } from '@core/utils/canvas/loaders/menu-background-webgl.js'
-import { SkeletonWebGL } from '@core/utils/canvas/loaders/skeleton-webgl.js'
 import { BurgerButtonWebGL } from '@core/utils/canvas/widgets/burger-button-webgl.js'
 import { CloseButtonWebGL } from '@core/utils/canvas/widgets/close-button.js'
 import { FlagWebGL } from '@core/utils/canvas/widgets/flag-webgl.js'
@@ -374,30 +373,6 @@ describe('lifecycle leftover arms', () => {
     expect(flag.renderer).toBe(held)
 
     flag.destroy()
-  })
-
-  test('SkeletonWebGL restore reuses a still-held renderer without re-acquiring', () => {
-    const host = document.createElement(HTML_TAGS.DIV)
-    const root = document.createElement(HTML_TAGS.DIV)
-    const content = document.createElement(HTML_TAGS.DIV)
-
-    host.getBoundingClientRect = () => ({ left: 0, top: 0, width: 400, height: 300 })
-
-    root.appendChild(content)
-    host.appendChild(root)
-    document.body.appendChild(host)
-
-    const layer = new SkeletonWebGL(host, root, content)
-
-    const held = layer.renderer
-
-    layer._paused = true
-    layer.animId = null
-    layer.restore()
-
-    expect(layer.renderer).toBe(held)
-
-    layer.destroy()
   })
 
   test('restored widgets re-arm their context-loss listeners', async () => {

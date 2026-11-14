@@ -10,6 +10,7 @@
  */
 
 import { FLAG_CLASSES } from '@core/tokens/classes/flags.js'
+import { STATE_CLASSES } from '@core/tokens/classes/state.js'
 import { MOUSE_EVENTS, WINDOW_EVENTS } from '@core/tokens/events/dom.js'
 import { TYPE_STRINGS } from '@core/tokens/strings/types.js'
 import { WEBGL_STRINGS } from '@core/tokens/strings/webgl.js'
@@ -153,6 +154,12 @@ export class FlagWebGL {
 
       return
     }
+
+    // Born fallback — the DOM's SVG imgs keep the tile painted through
+    // every init window (the wasm mount + texture-decode stall takes
+    // seconds); the first real frame clears the stamp and swaps the
+    // live canvas in.
+    this.canvas.classList.add(STATE_CLASSES.IS_FALLBACK)
 
     // WebGPU available → try the per-flag wasm artifact first; the
     // canvas must not get a 2D context while the mount is in flight.

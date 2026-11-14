@@ -116,6 +116,12 @@
       max-height: var(--print-media-max-h);
       margin: 0 auto;
       object-fit: contain;
+      // The surviving stack layer drops the screen contracts — the
+      // LQIP thumb's blur+bleed-zoom and the high layer's --loaded
+      // opacity gate are load affordances, never ink on paper.
+      opacity: 1;
+      filter: none;
+      transform: none;
     }
 
     // The fan-tier card-link goes block + absolute-media — in-flow on

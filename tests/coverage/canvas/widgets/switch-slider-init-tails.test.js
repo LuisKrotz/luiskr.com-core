@@ -49,7 +49,6 @@ jest.unstable_mockModule('@core/utils/canvas/webgl-pool.js', () => ({
 jest.unstable_mockModule('@core/utils/gpu/webgpu-widget.js', () => ({
   hasWebGpu: () => mockGpu,
   mountWebGpuWidget: async () => mountResult,
-  warmWidgetArtifacts: () => undefined,
 }))
 
 const { init, tryWasm, initRest, triggerFallback, initWebGL } =

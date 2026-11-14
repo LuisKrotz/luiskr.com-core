@@ -120,6 +120,25 @@ const stop = (rec) => {
  * the pump and reports `dead` so the bridge can fall back.
  * @param rec The widget record.
  */
+/**
+ * `markPainted` — reports the widget's first real draw submission so the
+ * bridge can stamp `is-painted` on the transferred canvas — the DOM's
+ * fallback layers (flag SVGs) swap out only after true pixels stand.
+ * @param rec The widget record.
+ */
+const markPainted = (rec) => {
+  if (rec.painted) return
+
+  rec.painted = true
+  self.postMessage({ type: 'painted', id: rec.id })
+}
+
+/**
+ * The worker-side render pump — owns `widget.frame(dt)` for
+ * RAF-driven kinds. A wasm-boundary throw or a false return disarms
+ * the pump and reports `dead` so the bridge can fall back.
+ * @param rec The widget record.
+ */
 const pump = (rec) => {
   if (!rec.active || rec.manual) return
 
@@ -135,6 +154,8 @@ const pump = (rec) => {
 
       return
     }
+
+    markPainted(rec)
   } catch (e) {
     stop(rec)
     self.postMessage({ type: 'dead', id: rec.id, error: String((e && e.message) || e) })
@@ -156,6 +177,8 @@ const pump = (rec) => {
 const probeFrame = async (rec, ms) => {
   try {
     if (rec.widget.frame(ms / 1000) === false) return -1
+
+    markPainted(rec)
 
     const device = await getDevice()
 
@@ -236,7 +259,16 @@ const mount = async ({ id, url, cls, manual, canvas }) => {
       throw err
     }
 
-    const rec = { id, widget, canvas, manual, active: true, last: performance.now(), timer: 0 }
+    const rec = {
+      id,
+      widget,
+      canvas,
+      manual,
+      active: true,
+      last: performance.now(),
+      timer: 0,
+      painted: false,
+    }
 
     widgets.set(id, rec)
     self.postMessage({ type: 'mounted', id })
@@ -308,6 +340,8 @@ self.onmessage = async (e) => {
     if (!alive) {
       self.postMessage({ type: 'frame-result', id: rec.id, alive: false })
       stop(rec)
+    } else {
+      markPainted(rec)
     }
 
     return

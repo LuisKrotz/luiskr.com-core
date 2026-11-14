@@ -4,7 +4,7 @@
  * for every color painted by the widget shaders and 2D context
  * fallbacks. GLSL entries are pre-formatted `vec3(...)` source strings
  * interpolated straight into shader templates (the token-injection
- * pattern SKELETON_GLYPH already uses); CSS entries are hex strings for
+ * pattern the widget shaders all use); CSS entries are hex strings for
  * ctx.strokeStyle/fillStyle sites. Where a value matches a SCSS token
  * the doc names it — SILVER_TOP is the metal palette's specular pole.
  */

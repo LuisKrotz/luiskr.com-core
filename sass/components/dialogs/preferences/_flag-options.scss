@@ -21,6 +21,10 @@ $_FLAG_W: to-rem($space-2xl - $space-3xs);
   align-items: center;
   justify-content: center;
 
+  // The canvas is born is-fallback (mount entry stamps it) and sheds
+  // the class only when a real frame paints — the SVG imgs hold the
+  // slot through the whole init/image-decode window instead of
+  // blacking it out the moment a canvas element exists.
   &:has(.#{$_B_FLAG}-canvas:not(.is-fallback):not([style*='display: none'])) {
     .#{$_B_FLAG}-img,
     .#{$_B_FLAG}-split {
@@ -28,7 +32,7 @@ $_FLAG_W: to-rem($space-2xl - $space-3xs);
     }
   }
 
-  // Show SVG images when WebGL canvas has fallback
+  // Show SVG images when WebGL canvas has fallback (or hasn't painted yet)
   &:has(.#{$_B_FLAG}-canvas.is-fallback) {
     .#{$_B_FLAG}-img,
     .#{$_B_FLAG}-split {

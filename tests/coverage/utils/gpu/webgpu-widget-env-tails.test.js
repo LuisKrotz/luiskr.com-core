@@ -114,7 +114,7 @@ describe('webgpu-widget env tails', () => {
     globalThis.OffscreenCanvas = class {}
 
     const { mountWebGpuWidget } = await import('@core/utils/gpu/webgpu-widget.js')
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, transferableCanvas(), deadLoader)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, transferableCanvas(), deadLoader)
 
     expect(h).toBeNull()
     expect(FakeWorker.last.terminated).toBe(true)
@@ -131,7 +131,7 @@ describe('webgpu-widget env tails', () => {
     globalThis.OffscreenCanvas = class {}
 
     const { mountWebGpuWidget } = await import('@core/utils/gpu/webgpu-widget.js')
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, transferableCanvas(), deadLoader)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, transferableCanvas(), deadLoader)
 
     expect(h).toBeNull()
   })
@@ -147,7 +147,7 @@ describe('webgpu-widget env tails', () => {
     globalThis.OffscreenCanvas = class {}
 
     const { mountWebGpuWidget } = await import('@core/utils/gpu/webgpu-widget.js')
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, transferableCanvas(), deadLoader)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, transferableCanvas(), deadLoader)
 
     expect(h).toBeNull()
     expect(FakeWorker.last.terminated).toBe(true)
@@ -164,7 +164,7 @@ describe('webgpu-widget env tails', () => {
 
     jest.useFakeTimers()
 
-    const p = mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, transferableCanvas(), deadLoader)
+    const p = mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, transferableCanvas(), deadLoader)
 
     await jest.advanceTimersByTimeAsync(WASM_POOL.REPLY_TIMEOUT_MS + 1)
 
@@ -180,7 +180,7 @@ describe('webgpu-widget env tails', () => {
     globalThis.OffscreenCanvas = class {}
 
     const { mountWebGpuWidget } = await import('@core/utils/gpu/webgpu-widget.js')
-    const p = mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, transferableCanvas(), deadLoader)
+    const p = mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, transferableCanvas(), deadLoader)
 
     await flush()
     window.dispatchEvent(new Event(WINDOW_EVENTS.PAGEHIDE))
@@ -203,7 +203,7 @@ describe('webgpu-widget env tails', () => {
     parent.appendChild(canvas)
     document.body.appendChild(parent)
 
-    const p = mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, deadLoader)
+    const p = mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, deadLoader)
 
     await flush()
 
@@ -238,7 +238,7 @@ describe('webgpu-widget env tails', () => {
 
     // Mount message posts but the worker never acks — the pendingMounts
     // flush inside destroyRenderWorker resolves it false.
-    const p = mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, deadLoader)
+    const p = mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, deadLoader)
 
     await flush()
     window.dispatchEvent(new Event(WINDOW_EVENTS.PAGEHIDE))
@@ -271,7 +271,7 @@ describe('webgpu-widget env tails', () => {
 
     const { mountWebGpuWidget } = await import('@core/utils/gpu/webgpu-widget.js')
     const canvas = transferableCanvas()
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)
 
     expect(h).not.toBeNull()
 

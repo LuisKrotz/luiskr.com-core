@@ -26,7 +26,6 @@ jest.unstable_mockModule('@core/utils/gpu/webgpu-widget.js', () => ({
 
     return mountResult
   },
-  warmWidgetArtifacts: () => undefined,
 }))
 
 /** Short flush — widget mount/event steps settle within ~30ms. */

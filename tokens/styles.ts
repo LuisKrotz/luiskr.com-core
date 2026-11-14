@@ -8,7 +8,6 @@
  *   - the skeleton shimmer system (all `skeleton-*` selectors + the
  *     `skeleton-shimmer` keyframes and the `skeleton-content-in` fade that
  *     plays when real content replaces a placeholder);
- *   - the `skeleton-layer` positioning the WebGL field overlays on;
  *   - the global reduced-motion kill-switch (`0.001ms` durations) so both
  *     the OS preference and the in-app toggle freeze all animation.
  * Selectors are assembled from `_SKEL`-derived fragments so the class
@@ -92,8 +91,6 @@ const _SKEL_BEFORE_SELECTORS = _SKEL_SELECTORS
  *  - `skeleton-*` — grey placeholder boxes with a diagonal shimmer
  *    (::before gradient sweeping left→right every 1.8s) so loading feels
  *    alive; `color: transparent` hides the reserve-space text;
- *  - `skeleton-layer` — absolutely-positioned WebGL canvas overlaying the
- *    placeholders (has-skeleton-layer pauses the CSS shimmer to save paint);
  *  - `skeleton-content-in` — 0.45s fade when real content lands;
  *  - reduced-motion — collapses all animation/transition durations to
  *    ~0ms so motion-sensitive users see instant state changes.
@@ -107,9 +104,6 @@ ${FOCUS_BASE_STYLES}
 ${_SKEL_SELECTORS} { position: relative; overflow: hidden; background: var(--skel-bg-1); color: transparent; user-select: none; }
 ${_SKEL_BEFORE_SELECTORS} { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, var(--skel-bg-2) 45%, var(--skel-bg-2) 55%, transparent 70%); transform: translateX(-100%); animation: ${_SKEL}-shimmer 1.8s linear infinite; will-change: transform; pointer-events: none; }
 ${_D_SKEL}--round { border-radius: 50%; }
-:host(.has-${_SKEL}-layer) { position: relative; }
-${_D_SKEL}-layer { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1; display: block; transform-origin: 0 0; }
-:host(.has-${_SKEL}-layer) ${_SKEL_BEFORE_SELECTORS.split(', ').join(', :host(.has-' + _SKEL + '-layer) ')} { animation: none; opacity: 0; }
 ${_D_SKEL}--block { display: block; }
 @keyframes ${_SKEL}-content-in { from { opacity: 0; } to { opacity: 1; } }
 ${_D_SKEL}-content-in > * { animation: ${_SKEL}-content-in 0.45s cubic-bezier(0.22, 1, 0.36, 1); }

@@ -236,27 +236,6 @@ function initModule(mod: WidgetModule): Promise<unknown> {
 }
 
 /**
- * Fire-and-forget fetch+compile for every `eager` artifact in the
- * registry — currently just the skeleton, the loading placeholder
- * itself. Calling this at the first skeleton mount starts the
- * artifact fetch before `init` would, so the widget is ready the
- * moment its canvas needs it; failures are swallowed because mount
- * re-attempts and falls back anyway.
- * @param loadModule Injectable module loader (tests substitute a stub).
- */
-export function warmWidgetArtifacts(
-  loadModule: (url: string) => Promise<WidgetModule> = loadModuleDefault
-): void {
-  if (!hasWebGpu() || !webgpuWidgetsEnabled()) return
-
-  for (const spec of Object.values(GPU_WIDGET_ARTIFACTS)) {
-    if (spec.eager) {
-      loadModule(spec.url).catch(() => undefined)
-    }
-  }
-}
-
-/**
  * Mounts a widget artifact on `canvas`: loads its wasm module, calls
  * `init`, wires resize + visibility-paused rAF, and returns the live
  * handle. Resolves null on any capability/artifact/init failure — the
@@ -317,6 +296,11 @@ export async function mountWebGpuWidget(
   }
 
   try {
+    // Same born-fallback contract as the worker route — the DOM
+    // fallbacks stay painted through the serialized init queue until
+    // the wire/manual shim's first real frame clears the stamp.
+    canvas.classList.add(STATE_CLASSES.IS_FALLBACK)
+
     const device = await getSharedGpuDevice()
 
     // No usable device — every artifact would init-trap on the dead
@@ -405,6 +389,19 @@ function withTimeout<T>(p: Promise<T> | T, ms: number): Promise<T> {
 }
 
 /**
+ * Graduates a canvas out of its born-fallback state: removes the
+ * `is-fallback` stamp placed at mount entry and marks `is-painted`
+ * so every `:has(canvas:not(.is-fallback))` fallback gate swaps the
+ * live canvas in for the img/knob/label it was holding. Idempotent —
+ * repeated frames re-add the same two class ops for free.
+ * @param canvas The widget's canvas element.
+ */
+function markPainted(canvas: HTMLCanvasElement): void {
+  canvas.classList.remove(STATE_CLASSES.IS_FALLBACK)
+  canvas.classList.add(STATE_CLASSES.IS_PAINTED)
+}
+
+/**
  * Attaches the rAF clock + resize/visibility plumbing to a live wasm
  * widget. Separate from mount so the loop stays unit-testable without
  * a real GPU. `dt` is seconds; the loop self-stops on destroy and
@@ -418,6 +415,20 @@ function withTimeout<T>(p: Promise<T> | T, ms: number): Promise<T> {
  */
 function wire(widget: WasmWidget, canvas: HTMLCanvasElement, manual: boolean): WidgetHandle {
   if (manual) {
+    // Caller-paced widgets (flag/draw-text loops) paint through this
+    // same `frame` boundary — the first non-false draw stamps the
+    // painted gate so the DOM's `:has(canvas.is-painted)` fallbacks
+    // swap out only after real pixels stand.
+    const rawFrame = widget.frame.bind(widget)
+
+    widget.frame = (dt: number) => {
+      const drew = rawFrame(dt)
+
+      if (drew !== false) markPainted(canvas)
+
+      return drew
+    }
+
     return { canvas, widget, destroy: () => freeWidget(widget) }
   }
 
@@ -473,7 +484,11 @@ function wire(widget: WasmWidget, canvas: HTMLCanvasElement, manual: boolean): W
     // uncaught every frame. One throw means the widget is dead —
     // disarm the loop; the caller's WebGL/CSS fallback keeps painting.
     try {
-      widget.frame((now - last) / 1000)
+      if (widget.frame((now - last) / 1000) !== false) {
+        // First real submission — the fallback/placeholder layers the
+        // DOM keeps painted under an unpainted canvas now swap out.
+        markPainted(canvas)
+      }
     } catch (e) {
       devWarn('webgpu-widget: frame threw — loop disarmed', e)
       rafId = 0
@@ -612,6 +627,11 @@ const pendingCalls = new Map<number, (v: unknown) => void>()
 /** Widget death watchers — id → callback when the worker reports dead. */
 const deadWatchers = new Map<number, () => void>()
 
+/** Worker-mounted widget id → its transferred canvas — the `painted`
+ *  reply stamps `is-painted` on the element so DOM fallbacks (flag
+ *  SVGs) swap out only once the worker's first real frame lands. */
+const liveCanvases = new Map<number, HTMLCanvasElement>()
+
 /** Monotonic widget id — correlates worker records to proxies. */
 let workerWidgetSeq = 0
 
@@ -655,6 +675,14 @@ function dispatchWorkerMessage(e: MessageEvent): void {
 
     pendingCalls.delete(d.replyId ?? -1)
     resolve?.(d.type === 'probe-result' ? d.coverage : (d.result ?? null))
+
+    return
+  }
+
+  if (d.type === 'painted') {
+    const painted = liveCanvases.get(d.id ?? -1)
+
+    if (painted) markPainted(painted)
 
     return
   }
@@ -726,6 +754,7 @@ async function spawnRenderWorker(): Promise<boolean> {
       pendingMounts.clear()
       pendingCalls.clear()
       deadWatchers.clear()
+      liveCanvases.clear()
     }
 
     renderWorker = worker
@@ -771,6 +800,7 @@ function destroyRenderWorker(): void {
   pendingMounts.clear()
   pendingCalls.clear()
   deadWatchers.clear()
+  liveCanvases.clear()
 
   try {
     worker?.terminate()
@@ -803,6 +833,14 @@ async function mountViaWorker(
   const worker = await getRenderWorker()
 
   if (!worker) return null
+
+  // The canvas is born is-fallback: every DOM `:has(canvas:not(
+  // .is-fallback))` fallback gate keeps its img/knob/label painted
+  // through mount + init; the first real frame (the worker's
+  // `painted` reply) clears the stamp and swaps the live canvas in.
+  // A mount that never reaches a paint leaves the fallback exactly
+  // where it was.
+  canvas.classList.add(STATE_CLASSES.IS_FALLBACK)
 
   let offscreen: OffscreenCanvas
 
@@ -896,6 +934,10 @@ async function mountViaWorker(
     return { canvas }
   }
 
+  // The worker paints on this thread's behalf — its first `painted`
+  // reply stamps the gate that swaps out the DOM's fallback layers.
+  liveCanvases.set(id, canvas)
+
   // Method forwarding — transferables (ImageBitmap/TypedArray) move
   // zero-copy; every call resolves via the reply map so awaited
   // callers (draw-text's atlas/sheet arms) get the worker's result.
@@ -959,6 +1001,7 @@ async function mountViaWorker(
 
   const destroy = () => {
     deadWatchers.delete(id)
+    liveCanvases.delete(id)
 
     try {
       worker.postMessage({ type: 'destroy', id })

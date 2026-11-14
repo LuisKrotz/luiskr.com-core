@@ -9,6 +9,7 @@
  */
 import { initPrintSupport } from '@core/utils/print/print.js'
 import { initMediaManifest } from '@core/utils/media/manifest.js'
+import store from '@core/store.js'
 import { COMMON_ATTRS } from '@core/tokens/attrs/common.js'
 import { MEDIA_ATTRS } from '@core/tokens/attrs/media.js'
 import { ATTR_VALUES } from '@core/tokens/attrs/values.js'
@@ -33,6 +34,10 @@ const fireBeforePrint = () => window.dispatchEvent(new window.Event(CLIPBOARD_EV
 
 /** Dispatches the native afterprint event the module listens for. */
 const fireAfterPrint = () => window.dispatchEvent(new window.Event(CLIPBOARD_EVENTS.AFTER_PRINT))
+
+/** Flushes the portrait fetch arm — the CMS lookup + img.src assign
+ *  resolve on microtasks after the synchronous prep pass returns. */
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 /** Builds a reader mirror article in <body>. */
 const mkArticle = () => {
@@ -96,6 +101,7 @@ const mkInternalHero = (fig) => {
 describe('print video + cover tails', () => {
   let mqlListener = null
   let origMatchMedia
+  let prevDb
 
   beforeAll(async () => {
     origMatchMedia = window.matchMedia
@@ -126,10 +132,20 @@ describe('print video + cover tails', () => {
 
     initPrintSupport()
 
+    // The cover star is the CMS profile picture first — these fixtures
+    // exercise the feature-still fallback it rides on, so the profile
+    // path must miss: a null database prefix resolves neither the boot
+    // chunk nor a live node (the mocked REST returns {} — non-string),
+    // which keeps coverPortraitUrl unset and every cover build on the
+    // featureCoverUrl arm.
+    prevDb = store.getters.getlang().database
+    store.getters.getlang().database = null
+
     expect(mqlListener).toBeInstanceOf(Function)
   })
 
   afterAll(() => {
+    store.getters.getlang().database = prevDb
     window.matchMedia = origMatchMedia
   })
 
@@ -229,7 +245,7 @@ describe('print video + cover tails', () => {
     }
   })
 
-  test('cover pick reads the hoisted video figure: still when no frame stands, data URL when one does', () => {
+  test('cover pick reads the hoisted video figure: still when no frame stands, data URL when one does', async () => {
     const canvasProto = Object.getPrototypeOf(document.createElement(HTML_TAGS.CANVAS))
     const realGetContext = canvasProto.getContext
     const realToDataURL = canvasProto.toDataURL
@@ -238,7 +254,8 @@ describe('print video + cover tails', () => {
     canvasProto.toDataURL = () => 'data:image/png;base64,PLAY=='
 
     // No <video> in the shadow: the pick falls to the manifest-proven
-    // `stem.mp4.jpg` — the only printable tier a video stem has.
+    // `stem.mp4.jpg` — the only printable tier a video stem has. The
+    // src lands after the CMS miss resolves through the fetch arm.
     const { fig: figStill, shadow: shStill } = mkVideoFigure('proj/clip', {
       [MEDIA_ATTRS.IS_VIDEO]: ATTR_VALUES.TRUE,
     })
@@ -248,6 +265,7 @@ describe('print video + cover tails', () => {
 
     try {
       fireBeforePrint()
+      await wait(0)
 
       const portrait = document.querySelector(`.${PRINT_CLASSES.COVER_PHOTO}`)
 
@@ -272,6 +290,7 @@ describe('print video + cover tails', () => {
 
     try {
       fireBeforePrint()
+      await wait(0)
 
       const portrait = document.querySelector(`.${PRINT_CLASSES.COVER_PHOTO}`)
 
@@ -284,8 +303,9 @@ describe('print video + cover tails', () => {
     }
   })
 
-  test('cover pick falls through when the video figure proves nothing, and skips non-video arms', () => {
-    // Unproven stem + cold video + unproven still → no cover photo.
+  test('cover pick falls through when the video figure proves nothing, and skips non-video arms', async () => {
+    // Unproven stem + cold video + unproven still → the fetch arm's
+    // featureCoverUrl comes back empty and the portrait plate drops.
     const { fig: figEmpty, shadow: shEmpty } = mkVideoFigure('proj/novid4', {
       [MEDIA_ATTRS.IS_VIDEO]: ATTR_VALUES.TRUE,
     })
@@ -294,6 +314,7 @@ describe('print video + cover tails', () => {
     mkInternalHero(figEmpty)
 
     fireBeforePrint()
+    await wait(0)
 
     expect(document.querySelector(`.${PRINT_CLASSES.COVER_PHOTO}`)).toBeNull()
 
@@ -308,6 +329,7 @@ describe('print video + cover tails', () => {
     mkInternalHero(figPlain)
 
     fireBeforePrint()
+    await wait(0)
 
     expect(document.querySelector(`.${PRINT_CLASSES.COVER_PHOTO}`)).toBeNull()
 
@@ -323,6 +345,7 @@ describe('print video + cover tails', () => {
     mkInternalHero(figFalse)
 
     fireBeforePrint()
+    await wait(0)
 
     expect(document.querySelector(`.${PRINT_CLASSES.COVER_PHOTO}`)).toBeNull()
 

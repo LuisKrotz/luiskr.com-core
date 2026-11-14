@@ -19,7 +19,6 @@ jest.unstable_mockModule('@core/utils/gpu/webgpu-widget.js', () => ({
   hasWebGpu: () => mockGpu,
   getSharedGpuDevice: async () => mockDevice,
   mountWebGpuWidget: async () => null,
-  warmWidgetArtifacts: () => undefined,
 }))
 
 jest.unstable_mockModule('@core/utils/wasm/wasm-image-decoder.js', () => ({
@@ -309,6 +308,5 @@ describe('scene3d facade', () => {
 
     expect(spec.url).toContain('/wasm/scene3d/')
     expect(spec.cls).toBe('Surface3d')
-    expect(spec.eager).toBe(false)
   })
 })

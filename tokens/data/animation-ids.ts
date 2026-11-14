@@ -34,7 +34,7 @@ export const ANIMATION_IDS = Object.freeze({
   THEME_SLIDER: 'theme-slider',
   /** Modal close ✕ — liquid fill + rotating strokes (WebGL/canvas). */
   CLOSE_BUTTON: 'close-button',
-  /** Loading skeleton — morphing glyph cells + traveling shimmer (canvas + CSS). */
+  /** Loading skeleton — traveling shimmer over grey placeholder wells (CSS). */
   SKELETON: 'skeleton',
   /** Boot intro loader — counter-rotating rings + progress (CSS). */
   INTRO_LOADER: 'intro-loader',
@@ -124,6 +124,9 @@ const _ANIM_DOC_COMPONENTS = `${_ANIM_DOC}website/components/`
 /** Docs root for GPU utility pages (`core/utils/gpu/…`). */
 const _ANIM_DOC_GPU = `${_ANIM_DOC}core/utils/gpu/`
 
+/** Docs root for motion utility pages (`core/utils/motion/…`). */
+const _ANIM_DOC_MOTION = `${_ANIM_DOC}core/utils/motion/`
+
 /** Live-source root for website component files (`website/components/…`). */
 const _ANIM_SRC_COMPONENTS = 'website/components/'
 
@@ -151,7 +154,7 @@ export const ANIMATION_DOCS: Readonly<Record<string, string>> = Object.freeze({
   [ANIMATION_IDS.SWITCH_SLIDER]: `${_ANIM_DOC_CANVAS}widgets/switch-slider.md`,
   [ANIMATION_IDS.THEME_SLIDER]: `${_ANIM_DOC_CANVAS}widgets/theme-slider.md`,
   [ANIMATION_IDS.CLOSE_BUTTON]: `${_ANIM_DOC_CANVAS}widgets/close-button.md`,
-  [ANIMATION_IDS.SKELETON]: `${_ANIM_DOC_CANVAS}loaders/skeleton-webgl.md`,
+  [ANIMATION_IDS.SKELETON]: `${_ANIM_DOC_MOTION}skeleton-shimmer.md`,
   [ANIMATION_IDS.INTRO_LOADER]: `${_ANIM_DOC_CANVAS}loaders/intro-loader.md`,
   [ANIMATION_IDS.SITE_TOAST]: `${_ANIM_DOC_COMPONENTS}feedback/SiteToast.md`,
   [ANIMATION_IDS.MOSAIC_BURN]: `${_ANIM_SRC_COMPONENTS}home/cardstack/info.ts`,

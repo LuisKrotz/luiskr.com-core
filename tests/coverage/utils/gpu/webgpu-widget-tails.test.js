@@ -8,13 +8,13 @@
  */
 import { jest } from '@jest/globals'
 import { GPU_WIDGET_DRIVE, GPU_WIDGET_KINDS } from '@core/tokens/motion/gpu-widgets.js'
+import { STATE_CLASSES } from '@core/tokens/classes/state.js'
 import { TYPE_STRINGS } from '@core/tokens/strings/types.js'
 import { WASM_POOL } from '@core/tokens/data/wasm.js'
 import {
   getSharedGpuDevice,
   hasWebGpu,
   mountWebGpuWidget,
-  warmWidgetArtifacts,
   webgpuWidgetsEnabled,
 } from '@core/utils/gpu/webgpu-widget.js'
 
@@ -100,7 +100,7 @@ describe('webgpu-widget bridge', () => {
     navigator.gpu = {}
     const canvas = document.createElement('canvas')
 
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () => {
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () => {
       throw new Error('404')
     })
 
@@ -111,7 +111,7 @@ describe('webgpu-widget bridge', () => {
     navigator.gpu = {}
     const canvas = document.createElement('canvas')
 
-    expect(await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas)).toBeNull()
+    expect(await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas)).toBeNull()
   })
 
   it('returns null when init fails', async () => {
@@ -143,9 +143,17 @@ describe('webgpu-widget bridge', () => {
     expect(lastWidget.sizes[0]).toEqual([40, 16])
     expect(lastWidget.resizes[0]).toEqual([80, 32])
 
+    // Born fallback — the DOM gates hold their img/knob fallbacks
+    // until the first real frame paints.
+    expect(canvas.classList.contains(STATE_CLASSES.IS_FALLBACK)).toBe(true)
+
     await flushTick()
     expect(lastWidget.frames.length).toBeGreaterThan(0)
     expect(typeof lastWidget.frames[0]).toBe(TYPE_STRINGS.NUMBER)
+
+    // First painted frame graduated the canvas out of fallback.
+    expect(canvas.classList.contains(STATE_CLASSES.IS_FALLBACK)).toBe(false)
+    expect(canvas.classList.contains(STATE_CLASSES.IS_PAINTED)).toBe(true)
 
     h.destroy()
     const before = lastWidget.frames.length
@@ -212,8 +220,8 @@ describe('webgpu-widget bridge', () => {
     navigator.gpu = fakeGpu()
     const canvas = document.createElement('canvas')
 
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () =>
-      recordingModule(async () => lastWidget, 'Skeleton')
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () =>
+      recordingModule(async () => lastWidget, 'Burger')
     )
 
     await flushTick()
@@ -233,9 +241,9 @@ describe('webgpu-widget bridge', () => {
     const canvas = document.createElement('canvas')
 
     const h = await mountWebGpuWidget(
-      GPU_WIDGET_KINDS.SKELETON,
+      GPU_WIDGET_KINDS.BURGER,
       canvas,
-      async () => recordingModule(async () => lastWidget, 'Skeleton'),
+      async () => recordingModule(async () => lastWidget, 'Burger'),
       { drive: GPU_WIDGET_DRIVE.MANUAL }
     )
 
@@ -245,8 +253,73 @@ describe('webgpu-widget bridge', () => {
 
     await flushTick()
 
-    // No bridge rAF — zero unsolicited frames.
+    // No bridge rAF — zero unsolicited frames; the canvas stays
+    // born-fallback until the caller paces a real frame.
     expect(lastWidget.frames.length).toBe(0)
+    expect(canvas.classList.contains(STATE_CLASSES.IS_FALLBACK)).toBe(true)
+
+    h.widget.frame(0.016)
+
+    expect(canvas.classList.contains(STATE_CLASSES.IS_FALLBACK)).toBe(false)
+    expect(canvas.classList.contains(STATE_CLASSES.IS_PAINTED)).toBe(true)
+
+    h.destroy()
+  })
+
+  it('a manual frame reporting false skips the painted stamp', async () => {
+    navigator.gpu = fakeGpu()
+    const canvas = document.createElement('canvas')
+
+    // rawFrame is bound at wire time — the no-draw verdict has to come
+    // from the module's own frame impl, not a post-mount monkey-patch.
+    const mod = {
+      default: async () => ({}),
+      Burger: function () {
+        lastWidget = {
+          init: async () => lastWidget,
+          resize: () => {},
+          frame: () => false,
+        }
+
+        return lastWidget
+      },
+    }
+
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () => mod, {
+      drive: GPU_WIDGET_DRIVE.MANUAL,
+    })
+
+    expect(h).not.toBeNull()
+    expect(h.widget.frame(0.016)).toBe(false)
+    expect(canvas.classList.contains(STATE_CLASSES.IS_PAINTED)).toBe(false)
+
+    h.destroy()
+  })
+
+  it('a tick frame reporting false skips the painted stamp and keeps looping', async () => {
+    navigator.gpu = fakeGpu()
+    const canvas = document.createElement('canvas')
+
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () =>
+      recordingModule(async () => lastWidget, 'Burger')
+    )
+
+    await flushTick()
+
+    // The widget reports a no-draw frame — the stamp must not fire and
+    // the loop keeps pacing (a false is a skip, not a death).
+    let falseCalls = 0
+
+    lastWidget.frame = () => (falseCalls++, false)
+
+    canvas.classList.add(STATE_CLASSES.IS_FALLBACK)
+    canvas.classList.remove(STATE_CLASSES.IS_PAINTED)
+
+    await flushTick()
+    await flushTick()
+
+    expect(falseCalls).toBeGreaterThan(0)
+    expect(canvas.classList.contains(STATE_CLASSES.IS_PAINTED)).toBe(false)
 
     h.destroy()
   })
@@ -255,8 +328,8 @@ describe('webgpu-widget bridge', () => {
     navigator.gpu = fakeGpu()
     const canvas = document.createElement('canvas')
 
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () =>
-      recordingModule(async () => lastWidget, 'Skeleton')
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () =>
+      recordingModule(async () => lastWidget, 'Burger')
     )
 
     expect(h).not.toBeNull()
@@ -283,9 +356,9 @@ describe('webgpu-widget bridge', () => {
     const canvas = document.createElement('canvas')
     let freed = 0
 
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () => ({
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () => ({
       default: async () => ({}),
-      Skeleton: function () {
+      Burger: function () {
         lastWidget = {
           frames: [],
           resizes: [],
@@ -315,11 +388,11 @@ describe('webgpu-widget bridge', () => {
     let freed = 0
 
     const h = await mountWebGpuWidget(
-      GPU_WIDGET_KINDS.SKELETON,
+      GPU_WIDGET_KINDS.BURGER,
       canvas,
       async () => ({
         default: async () => ({}),
-        Skeleton: function () {
+        Burger: function () {
           return {
             init: async () => ({}),
             resize: () => undefined,
@@ -342,9 +415,9 @@ describe('webgpu-widget bridge', () => {
     navigator.gpu = fakeGpu()
     const canvas = document.createElement('canvas')
 
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () => ({
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () => ({
       default: async () => ({}),
-      Skeleton: function () {
+      Burger: function () {
         return {
           init: async () => ({}),
           resize: () => undefined,
@@ -404,7 +477,7 @@ describe('webgpu-widget bridge', () => {
     const docDesc = Object.getOwnPropertyDescriptor(globalThis, 'document')
 
     Object.defineProperty(globalThis, 'document', { value: undefined, configurable: true })
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, {})
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, {})
 
     if (docDesc) Object.defineProperty(globalThis, 'document', docDesc)
 
@@ -415,8 +488,8 @@ describe('webgpu-widget bridge', () => {
     navigator.gpu = fakeGpu()
     const canvas = document.createElement('canvas')
 
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () =>
-      recordingModule(async () => lastWidget, 'Skeleton')
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () =>
+      recordingModule(async () => lastWidget, 'Burger')
     )
 
     expect(h).not.toBeNull()
@@ -470,8 +543,8 @@ describe('webgpu-widget bridge', () => {
     }
 
     const canvas = document.createElement('canvas')
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () =>
-      recordingModule(async () => lastWidget, 'Skeleton')
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () =>
+      recordingModule(async () => lastWidget, 'Burger')
     )
 
     expect(h).not.toBeNull()
@@ -507,7 +580,7 @@ describe('webgpu-widget bridge', () => {
     jest.useFakeTimers()
 
     try {
-      const p = mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, () => new Promise(() => {}))
+      const p = mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, () => new Promise(() => {}))
 
       await jest.advanceTimersByTimeAsync(WASM_POOL.REPLY_TIMEOUT_MS + 1)
 
@@ -549,9 +622,9 @@ describe('webgpu-widget bridge', () => {
     const canvas = document.createElement('canvas')
     let freed = 0
 
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () => ({
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () => ({
       default: async () => ({}),
-      Skeleton: function () {
+      Burger: function () {
         return {
           __wbg_ptr: 0,
           init: async () => ({}),
@@ -573,8 +646,8 @@ describe('webgpu-widget bridge', () => {
     navigator.gpu = fakeGpu()
     const canvas = document.createElement('canvas')
 
-    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.SKELETON, canvas, async () =>
-      recordingModule(async () => lastWidget, 'Skeleton')
+    const h = await mountWebGpuWidget(GPU_WIDGET_KINDS.BURGER, canvas, async () =>
+      recordingModule(async () => lastWidget, 'Burger')
     )
 
     await flushTick()
@@ -587,46 +660,6 @@ describe('webgpu-widget bridge', () => {
 
     expect(lastWidget.frames.length).toBeGreaterThan(armed)
     h.destroy()
-  })
-
-  it('warmWidgetArtifacts fetches only eager specs', async () => {
-    navigator.gpu = {}
-    const loaded = []
-
-    warmWidgetArtifacts(async (url) => {
-      loaded.push(url)
-
-      return { default: async () => ({}) }
-    })
-
-    expect(loaded.length).toBe(1)
-    expect(loaded[0]).toContain('skeleton')
-  })
-
-  it('warmWidgetArtifacts no-ops without navigator.gpu and swallows rejections', async () => {
-    delete navigator.gpu
-    const loaded = []
-
-    warmWidgetArtifacts(async (url) => {
-      loaded.push(url)
-
-      return { default: async () => ({}) }
-    })
-
-    expect(loaded.length).toBe(0)
-
-    navigator.gpu = {}
-    // A 404 artifact must not reject the warm call itself.
-    warmWidgetArtifacts(async () => {
-      throw new Error('404')
-    })
-
-    await Promise.resolve()
-
-    // The default-loader arm — the real import rejects and is swallowed.
-    warmWidgetArtifacts()
-
-    await Promise.resolve()
   })
 })
 
