@@ -20,11 +20,4 @@ export const DOCS_IDS = Object.freeze({
   CRUMBS: `${_B_DOCS}-crumbs`,
   GRID: `${_B_DOCS}-grid`,
   VIEWER: `${_B_DOCS}-viewer`,
-  SCENE: `${_B_DOCS}-scene`,
-  /** Zoom trigger's aria-controls target — the architecture-map dialog. */
-  MAP_MODAL: `${_B_DOCS}-map-modal`,
-  /** Visible label element the map landmark names itself from
-   *  (aria_complementary_label_visible — landmarks should name from
-   *  rendered text, not an invisible aria-label). */
-  MAP_LABEL: `${_B_DOCS}-map-label`,
 })

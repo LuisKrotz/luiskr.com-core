@@ -4,9 +4,9 @@
  * shared engine.wasm numeric module once, then serves every dispatched
  * action off the main thread — masonry layout, media analytics, spring
  * integration, draw-text timing, media-hash keys, image/svg decode,
- * video prefetch/probe/segment fetch, docs-scene sphere packing,
- * star-field buffer fills, deepfield record decode, and route-search
- * scoring. Every handler mirrors its main-thread JS fallback exactly so
+ * video prefetch/probe/segment fetch, star-field buffer fills,
+ * deepfield record decode, and route-search scoring. Every handler
+ * mirrors its main-thread JS fallback exactly so
  * worker and fallback output can never drift.
  *
  * Contract notes:
@@ -63,22 +63,6 @@ const DJB2_SEED = 5381
 /** Byte-range prefetch probes — 256 KB warm / 128 KB probe. */
 const PREFETCH_RANGE_BYTES = 262143
 const PROBE_RANGE_BYTES = 131071
-
-/** Docs-scene constants — mirrors DOCS_UNITS (tokens/strings/docs.ts). */
-const DOCS_SCENE = Object.freeze({
-  GOLDEN_ANGLE: 2.399963, // DOCS_UNITS.SCENE_Y_HASH — the golden-angle spiral step.
-  SPIN_HASH: 4.208, // DOCS_UNITS.SCENE_SPIN_HASH — per-parent phase rotation.
-  MIN_ORBIT: 6, // DOCS_UNITS.SCENE_MIN_ORBIT — cluster orbit floor.
-  MIN_SEP: 12, // DOCS_UNITS.SCENE_MIN_SEP — minimum node separation.
-  CHILD_SCALE: 0.72, // DOCS_UNITS.SCENE_CHILD_SCALE — orbit shrink per level.
-  GLYPH_MAX: 3, // DOCS_UNITS.SCENE_GLYPH_MAX — icon size cap.
-  DIR_RADIUS: 1.15, // DOCS_UNITS.SCENE_DIR_RADIUS — folder glyph radius.
-  FILE_RADIUS: 0.55, // DOCS_UNITS.SCENE_FILE_RADIUS — file glyph radius.
-  GLYPH_FIT: 0.14, // DOCS_UNITS.SCENE_GLYPH_FIT — icon-to-orbit ratio.
-  RELAX_ITERS: 30, // DOCS_UNITS.SCENE_RELAX_ITERS — pairwise relaxation passes.
-  EPSILON: 1e-6, // Division guard for coincident nodes.
-  ANCHOR_INDEX: 0, // The root node never moves during relaxation.
-})
 
 /** Star-field bubble-carve respawn cap — max attempts to replace a point
  *  that lands inside a void bubble before keeping the dimmed original. */
@@ -286,112 +270,6 @@ self.onmessage = async (event) => {
     const newPosition = current + newVelocity * SPRING_DT
 
     post(id, 'SPRING_PHYSICS_RESULT', { position: newPosition, velocity: newVelocity })
-  } else if (type === 'DOCS_SCENE_LAYOUT') {
-    // Docs architecture scene: batch hierarchical-sphere positions
-    // off-thread. Payload: { parents, sibs, sibCounts, dirs } — results
-    // carry the flattened xyz triplets in node order (the formula mirrors
-    // the main-thread fallback in arch-scene.ts; DOCS_SCENE above mirrors
-    // the DOCS_UNITS token bag). Cluster radii use the reference's
-    // shrink-ratio orbit with a sibling-glyph clearance floor — a single
-    // forward pass (parents precede children in placed order), NOT
-    // subtree-extent packing, which grows exponentially past ~a hundred
-    // nodes.
-    const { parents = [], sibs = [], sibCounts = [], dirs = [] } = payload
-    const nodeCount = parents.length
-    const xyz = new Float32Array(nodeCount * 3)
-    const scale = new Float32Array(nodeCount)
-    const cluster = new Float64Array(nodeCount)
-    const kids = new Int32Array(nodeCount)
-
-    for (let i = 0; i < nodeCount; i++) if (parents[i] >= 0) kids[parents[i]]++
-
-    for (let i = 0; i < nodeCount; i++) {
-      const childCount = kids[i]
-      const parent = parents[i]
-      const inherited = parent >= 0 ? cluster[parent] * DOCS_SCENE.CHILD_SCALE : 0
-
-      cluster[i] =
-        childCount === 0
-          ? 0
-          : Math.max(
-              DOCS_SCENE.MIN_ORBIT,
-              inherited,
-              (2 * DOCS_SCENE.GLYPH_MAX + DOCS_SCENE.MIN_SEP) /
-                (2 * Math.sin(Math.PI / Math.max(childCount, 2)))
-            )
-    }
-
-    for (let i = 0; i < nodeCount; i++) {
-      const parent = parents[i]
-      const orbit = parent < 0 ? cluster[0] : cluster[parent]
-      const baseRadius = dirs[i] ? DOCS_SCENE.DIR_RADIUS : DOCS_SCENE.FILE_RADIUS
-
-      // Orbit-proportional glyph (the reference's icon-to-orbit ratio),
-      // capped at GLYPH_MAX — the size the sibling chord guarantees;
-      // the root always renders at GLYPH_MAX (the big center hub).
-      scale[i] =
-        parent < 0
-          ? DOCS_SCENE.GLYPH_MAX / baseRadius
-          : Math.max(1, Math.min(DOCS_SCENE.GLYPH_FIT * orbit, DOCS_SCENE.GLYPH_MAX) / baseRadius)
-
-      if (parent < 0) continue
-
-      const sibTotal = Math.max(sibCounts[i], 1)
-      const sibIndex = sibs[i]
-      const polar = Math.acos(1 - (2 * (sibIndex + 0.5)) / sibTotal)
-      const azimuth = sibIndex * DOCS_SCENE.GOLDEN_ANGLE + parent * DOCS_SCENE.SPIN_HASH
-
-      xyz[i * 3] = xyz[parent * 3] + orbit * Math.sin(polar) * Math.cos(azimuth)
-      xyz[i * 3 + 1] = xyz[parent * 3 + 1] + orbit * Math.cos(polar)
-      xyz[i * 3 + 2] = xyz[parent * 3 + 2] + orbit * Math.sin(polar) * Math.sin(azimuth)
-    }
-
-    // Pairwise relax — the sibling chord covers siblings; rare cross-
-    // branch collisions get nudged apart by half the deficit each
-    // (root stays anchored). Mirrors layoutPositionsJs in arch-scene.ts.
-    const radii = new Float64Array(nodeCount)
-
-    for (let i = 0; i < nodeCount; i++)
-      radii[i] = (dirs[i] ? DOCS_SCENE.DIR_RADIUS : DOCS_SCENE.FILE_RADIUS) * scale[i]
-
-    for (let iter = 0; iter < DOCS_SCENE.RELAX_ITERS; iter++) {
-      let moved = false
-
-      for (let nodeA = 0; nodeA < nodeCount; nodeA++) {
-        for (let nodeB = nodeA + 1; nodeB < nodeCount; nodeB++) {
-          const need = radii[nodeA] + radii[nodeB] + DOCS_SCENE.MIN_SEP
-          const deltaX = xyz[nodeB * 3] - xyz[nodeA * 3]
-          const deltaY = xyz[nodeB * 3 + 1] - xyz[nodeA * 3 + 1]
-          const deltaZ = xyz[nodeB * 3 + 2] - xyz[nodeA * 3 + 2]
-          const distance = Math.hypot(deltaX, deltaY, deltaZ)
-
-          if (distance >= need) continue
-
-          const anchored = nodeA === DOCS_SCENE.ANCHOR_INDEX
-          const pushDist = (need - distance) / (anchored ? 1 : 2)
-          const invDist = distance > DOCS_SCENE.EPSILON ? 1 / distance : 0
-          const unitX = invDist ? deltaX * invDist : Math.cos(nodeA * DOCS_SCENE.SPIN_HASH)
-          const unitY = invDist ? deltaY * invDist : 0.5
-          const unitZ = invDist ? deltaZ * invDist : Math.sin(nodeA * DOCS_SCENE.SPIN_HASH)
-
-          if (!anchored) {
-            xyz[nodeA * 3] -= unitX * pushDist
-            xyz[nodeA * 3 + 1] -= unitY * pushDist
-            xyz[nodeA * 3 + 2] -= unitZ * pushDist
-          }
-
-          xyz[nodeB * 3] += unitX * pushDist
-          xyz[nodeB * 3 + 1] += unitY * pushDist
-          xyz[nodeB * 3 + 2] += unitZ * pushDist
-
-          moved = true
-        }
-      }
-
-      if (!moved) break
-    }
-
-    post(id, 'DOCS_SCENE_LAYOUT_RESULT', { xyz, scale }, [xyz.buffer, scale.buffer])
   } else if (type === 'COMPUTE_TEXT_TIMING') {
     // Draw-text stagger math — delay clamped to the token band so long
     // texts finish on time and short texts don't stall. Mirrors

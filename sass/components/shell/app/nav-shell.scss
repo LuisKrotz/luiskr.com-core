@@ -11,6 +11,7 @@
 @import '../../../base/variables';
 @import '../../../base/mixins';
 @import '../../../base/placeholders';
+@import '../../../base/membrane';
 // NOTE: no _fonts import — partials @extend the %TTL_* placeholders (emitted
 // on use) instead of pulling the full ~200-line class ramp; no markup inside
 // this shadow uses .ttl-*/.txt-* classes directly.

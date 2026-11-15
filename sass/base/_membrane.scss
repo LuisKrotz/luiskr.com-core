@@ -1,0 +1,93 @@
+// ════════════════════════════════════════════════════════════════════════════
+//  base/_membrane.scss — the shared turbulence-membrane backdrop — two ink
+//  layers clipped by SVG feTurbulence + a sparse feFuncA table; the narrow
+//  alpha spikes at a few noise thresholds read as organic isolines, not
+//  bands. mask-position drifts on two clock rates so the field breathes.
+//  Shared by the nav menu overlay (its CSS fallback) and the docs portal
+//  backdrop — both surfaces play the identical animation via `membrane()`.
+//  Imported by consuming manifests — not compiled standalone.
+// ════════════════════════════════════════════════════════════════════════════
+
+// Isoline masks — feTurbulence noise keyed to a sparse alpha table.
+$_MEMBRANE-TURB-A: 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27420%27 height=%27420%27%3E%3Cfilter id=%27f%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.009 0.014%27 numOctaves=%273%27 seed=%277%27/%3E%3CfeComponentTransfer%3E%3CfeFuncA type=%27table%27 tableValues=%270 0 0 0.4 0 0.85 0 0 0.5 0 0.28 0 0 0.15 0%27/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width=%27420%27 height=%27420%27 filter=%27url%28%23f%29%27/%3E%3C/svg%3E';
+$_MEMBRANE-TURB-B: 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27420%27 height=%27420%27%3E%3Cfilter id=%27g%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.006 0.011%27 numOctaves=%273%27 seed=%2719%27/%3E%3CfeComponentTransfer%3E%3CfeFuncA type=%27table%27 tableValues=%270 0 0.55 0 0 0.3 0 0 0.75 0 0 0.2 0%27/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width=%27420%27 height=%27420%27 filter=%27url%28%23g%29%27/%3E%3C/svg%3E';
+
+// ── membrane — emit the two drifting isoline layers on a host ───────────────
+// The host keeps the entrance fade ($ease-out 2.6s → 0.32 resting ink,
+// matching the WebGL contour field's alpha); callers position the layers
+// (absolute inside a pinned host, or fixed for a viewport-anchored page
+// backdrop) and may re-z them under content.
+//   $ink     — layer-one currentColor (usually a themed ink var)
+//   $ink-alt — layer-two currentColor (the dimmer counter-drift field)
+@mixin membrane($ink, $ink-alt) {
+  animation: membrane-in 2.6s $ease-out both;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -15%;
+    background: currentColor;
+  }
+
+  &::before {
+    color: $ink;
+    -webkit-mask-image: url('#{$_MEMBRANE-TURB-A}');
+    mask-image: url('#{$_MEMBRANE-TURB-A}');
+    -webkit-mask-size: 140% 140%;
+    mask-size: 140% 140%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    animation: membrane-drift 38s ease-in-out infinite alternate;
+  }
+
+  &::after {
+    color: $ink-alt;
+    opacity: 0.4;
+    -webkit-mask-image: url('#{$_MEMBRANE-TURB-B}');
+    mask-image: url('#{$_MEMBRANE-TURB-B}');
+    -webkit-mask-size: 165% 165%;
+    mask-size: 165% 165%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    animation: membrane-drift-alt 52s ease-in-out infinite alternate;
+  }
+}
+
+// Entrance mirrors the shader's reveal: pure opacity fade, no transform —
+// the background field must stay stable while the chrome animates around it.
+// The 0.32 resting opacity matches the contour field's ink alpha.
+@keyframes membrane-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 0.32;
+  }
+}
+
+// The turbulence tile slides so the isoline field visibly breathes.
+@keyframes membrane-drift {
+  from {
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+  }
+
+  to {
+    -webkit-mask-position: 14% 9%;
+    mask-position: 14% 9%;
+  }
+}
+
+@keyframes membrane-drift-alt {
+  from {
+    -webkit-mask-position: 8% 12%;
+    mask-position: 8% 12%;
+  }
+
+  to {
+    -webkit-mask-position: -6% -4%;
+    mask-position: -6% -4%;
+  }
+}

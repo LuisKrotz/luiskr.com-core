@@ -1131,7 +1131,7 @@ const captureVideoFrame = (video: HTMLVideoElement): string => {
 
 /**
  * Asks the owning engine for a fresh frame, then falls back to reading the
- * preserved buffer. Engines that render-on-demand (docs arch-scene) listen
+ * preserved buffer. Engines that render-on-demand listen
  * for `printcapture` and write detail.dataUrl after re-painting; engines
  * that keep the last frame (star-field, earth — preserveDrawingBuffer)
  * satisfy the direct toDataURL read.
@@ -2071,8 +2071,8 @@ const prepPrint = (announce = true): void => {
     }
 
     if (el.tagName === HTML_TAGS.CANVAS.toUpperCase()) {
-      // `data-print-skip` retires the canvas outright (docs background
-      // scene); `data-print-capture` opts aria-hidden/role-button demo
+      // `data-print-skip` retires the canvas outright (anim-demo GPU
+      // surfaces); `data-print-capture` opts aria-hidden/role-button demo
       // canvases into the still capture they would otherwise miss;
       // `data-print-landscape` (the Earth scene is wider than tall)
       // plates the still rotated inside the portrait sheet — a named

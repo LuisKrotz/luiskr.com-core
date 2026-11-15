@@ -87,8 +87,8 @@ export const DATA_ATTRS = Object.freeze({
   PRINT_CAPTURE: `${_DATA}print-capture`,
   /**
    * `data-print-skip` — opt-out marker on a canvas that must never print
-   * (docs landing background scene): the adapter retires the element and
-   * injects no still.
+   * (anim-demo GPU surfaces, earth-playground panels): the adapter
+   * retires the element and injects no still.
    */
   PRINT_SKIP: `${_DATA}print-skip`,
   /**

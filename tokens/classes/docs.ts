@@ -46,39 +46,6 @@ export const DOCS_CLASSES = Object.freeze({
   DOCS_VIEWER_BACK: `${_B_DOCS}-viewer-back`,
   DOCS_CONTENT: `${_B_DOCS}-content`,
   DOCS_FRAME: `${_B_DOCS}-frame`,
-  DOCS_SCENE: `${_B_DOCS}-scene`,
-  DOCS_SCENE_OFF: `${_B_DOCS}-scene-off`,
-  DOCS_SCENE_HINT: `${_B_DOCS}-scene-hint`,
-  // ── Architecture-map column + zoom modal ──────────────────────────────
-  /** The right-hand map column — interactive alternative nav surface. */
-  DOCS_MAP: `${_B_DOCS}-map`,
-  /** Canvas seat inside the column OR the zoom dialog — the persistent
-   *  scene node re-parents here on every render. */
-  DOCS_MAP_STAGE: `${_B_DOCS}-map-stage`,
-  /** Map header row — caption + zoom trigger. */
-  DOCS_MAP_HEAD: `${_B_DOCS}-map-head`,
-  /** Zoom trigger — opens the centered glass modal. */
-  DOCS_MAP_ZOOM: `${_B_DOCS}-map-zoom`,
-  /** The ⤢ glyph inside the zoom trigger — wrapped in a span so hover
-   *  can transform it (bare text nodes take no transform). */
-  DOCS_MAP_ZOOM_ICON: `${_B_DOCS}-map-zoom-icon`,
-  /** Fullscreen overlay behind the zoom dialog — the glass backdrop. */
-  DOCS_MAP_MODAL: `${_B_DOCS}-map-modal`,
-  /** Fullscreen click-catcher between backdrop and dialog — the
-   *  expand-modal close-area pattern. */
-  DOCS_MAP_CLOSE_AREA: `${_B_DOCS}-map-close-area`,
-  /** The centered glass dialog hosting the enlarged scene. */
-  DOCS_MAP_DIALOG: `${_B_DOCS}-map-dialog`,
-  /** Bottom close button under the dialog content — the expand-modal
-   *  close-bottom pattern (labelled, corner-bracket styled). */
-  DOCS_MAP_CLOSE_BOTTOM: `${_B_DOCS}-map-close-bottom`,
-  /** In-stage loading veil — covers the canvas seat while the scene's
-   *  async graph build (worker layout → mesh/label upload) is in flight. */
-  DOCS_MAP_LOADING: `${_B_DOCS}-map-loading`,
-  /** Spinner ring inside the map loading veil. */
-  DOCS_MAP_LOADING_SPIN: `${_B_DOCS}-map-loading-spin`,
-  /** Status caption under the map loading spinner. */
-  DOCS_MAP_LOADING_LABEL: `${_B_DOCS}-map-loading-label`,
   DOCS_NAV_TOGGLE: `${_B_DOCS}-nav-toggle`,
   DOCS_NAV_OPEN: `${_B_DOCS}-nav-open`,
   /** Combobox dropdown container — the toggle's aria-controls target
