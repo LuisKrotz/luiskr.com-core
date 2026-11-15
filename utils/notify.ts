@@ -21,6 +21,7 @@ import { COMPONENT_TAGS } from '@core/tokens/elements/components.js'
 import { WINDOW_EVENTS } from '@core/tokens/events/dom.js'
 import { NOTIFY } from '@core/tokens/motion/notify.js'
 import { CHAR_STRINGS } from '@core/tokens/strings/chars.js'
+import { DOM_STRINGS } from '@core/tokens/strings/dom.js'
 import { STATE_STRINGS } from '@core/tokens/strings/state.js'
 import { TYPE_STRINGS } from '@core/tokens/strings/types.js'
 import { appText } from '@core/locale/ui-text.js'
@@ -211,6 +212,13 @@ export const initGlobalErrorHandlers = (): boolean => {
     // The user only ever sees the generic string — the real reason lands in
     // the devlog ring buffer (`__lkDevLog()`) so a report can name the fault.
     devError('Unhandled failure:', (event as PromiseRejectionEvent).reason ?? event)
+
+    // "ResizeObserver loop completed with undelivered notifications" is the
+    // browser's informational notice that observer callbacks overflowed one
+    // frame's delivery — the pending notification re-fires next frame and
+    // layout self-corrects. It carries no stack and tells the user nothing
+    // actionable: keep it in the devlog, never on screen.
+    if ((event as ErrorEvent).message?.includes(DOM_STRINGS.RESIZE_OBSERVER_LOOP)) return
 
     notifyError()
   }

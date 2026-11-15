@@ -301,7 +301,19 @@ export const measureLayout = <T>(read: () => T): T => {
  * layout so the browser commits them, then apply the animating class in
  * the same frame. Callers get the element's offsetHeight as a side effect
  * of the flush; the return value is meant to be ignored (`void`).
+ *
+ * The flush rides a getBoundingClientRect CALL on purpose: production
+ * terser (`pure_getters`) dead-codes a bare `el.offsetHeight` statement
+ * whose result is ignored — which is exactly how callers use this — but
+ * a method invocation can never be proven pure, so the forced layout can
+ * never be minified away. Reading offsetWidth/offsetHeight directly at a
+ * call site reproduces the prod regression; always route through here.
  * @param el Element whose layout is flushed.
  * @returns the element's offsetHeight (the flushing read).
  */
-export const flushLayout = (el: HTMLElement): number => measureLayout(() => el.offsetHeight)
+export const flushLayout = (el: HTMLElement): number =>
+  measureLayout(() => {
+    void el.getBoundingClientRect()
+
+    return el.offsetHeight
+  })

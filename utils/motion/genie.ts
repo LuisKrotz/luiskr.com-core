@@ -13,6 +13,7 @@ import { CHAR_STRINGS } from '@core/tokens/strings/chars.js'
 import { STATE_STRINGS } from '@core/tokens/strings/state.js'
 import store from '@core/store.js'
 import { ANIMATION_DURATIONS } from '@core/tokens/motion/animation.js'
+import { flushLayout } from '@core/utils/dom.js'
 import { framePool } from './frame.js'
 
 /** Any component exposing the shadow-scoped `$` selector helper. */
@@ -92,7 +93,7 @@ export const genieEnter = (
 
   backdrop.classList.add(classes.backdropEnter)
 
-  void dialog.offsetWidth
+  flushLayout(dialog)
 
   dialog.style.transition = CHAR_STRINGS.EMPTY
 
