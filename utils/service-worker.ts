@@ -102,9 +102,12 @@ async function isValidServiceWorker(swUrl: string): Promise<boolean> {
 /**
  * True on local origins — localhost names, loopback IPs, and [::1].
  * The original package treated these as "probably dev" and probed
- * before registering; preserved identically.
+ * before registering; preserved identically. Exported so entry gates
+ * (`registerServiceWorker`) can treat local origins as non-production —
+ * a leftover preview worker would otherwise keep serving an older
+ * precached shell against a rebuilt dist.
  */
-function isLocalhost(): boolean {
+export function isLocalhost(): boolean {
   const host = window.location.hostname
 
   return (

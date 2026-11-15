@@ -43,6 +43,7 @@ jest.unstable_mockModule('@core/utils/service-worker.js', () => ({
       })
       .catch(() => {})
   },
+  isLocalhost: jest.fn(() => false),
 }))
 
 /** Stashed globals, restored after each test. Descriptors are captured
