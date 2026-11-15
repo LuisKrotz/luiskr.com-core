@@ -580,6 +580,11 @@ export const _K_EARTH_PLAYGROUND = 'earthPlayground'
  */
 export const _K_STAR_FIELD = 'starField'
 /**
+ * Shared key token `axiomsEnd` — single source for the Axiom's End
+ * experiment's CMS/slug key literal (zero-hardcoding rule 5).
+ */
+export const _K_AXIOMS_END = 'axiomsEnd'
+/**
  * Shared key token `animations` — single source for the animations-reference
  * dictionary key and the route's English segment (zero-hardcoding rule 5).
  */

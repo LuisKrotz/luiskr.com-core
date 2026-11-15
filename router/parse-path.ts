@@ -395,6 +395,23 @@ function resolveLocalized(
     }
   }
 
+  // Axiom's End — single-segment experiment route; the English segment
+  // aliases under a locale prefix canonicalize onto the locale's slug.
+  if (first === slugs.axiomsEnd || first === ROUTE_PATHS.AXIOMS_END_SEGMENT) {
+    return {
+      name: ROUTE_NAMES.AXIOMS_END,
+      view: VIEW_TAGS.VIEW_AXIOMS_END,
+      lang,
+      path: cleanPath,
+      meta: {
+        title: `${String(appText(CMS_KEYS.AXIOMS_END))} ${CHAR_STRINGS.PIPE_SEP} ${BASE_TITLE}`,
+        translation: TRANSLATION_KEYS.AXIOMS_END,
+        canonical: `${locPrefix}${CHAR_STRINGS.SLASH}${slugs.axiomsEnd}`,
+      },
+      params: {},
+    }
+  }
+
   // Animations reference — localized slug plus the English-segment alias
   // under a locale prefix, canonicalizing onto the locale's own slug.
   if (first === slugs.animations || first === ROUTE_PATHS.ANIMATIONS_SEGMENT) {
