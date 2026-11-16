@@ -19,10 +19,6 @@ $_B_AWARDS: 'awards-footer';
   display: block;
   width: 100%;
   background: var(--bg-secondary-glass, var(--bg-secondary));
-  // Desktop parallax seed — views/home/parallax.ts overwrites this
-  // inline once per scroll frame inside the `desktop` width class;
-  // the consumers are the band's inner rows below.
-  --awards-parallax-y: #{to-rem($space-none)};
 }
 
 // ── Awards footer ─────────────────────────────────────────────────────────────
@@ -99,13 +95,6 @@ $_B_AWARDS: 'awards-footer';
       gap: to-rem($space-xl);
       width: 100%;
       padding-bottom: to-rem($space-3xl);
-    }
-
-    // Desktop scroll parallax — drifts with the rest of the band's
-    // rows as one glued unit inside the painted host (see :host
-    // seed + views/home/parallax.ts).
-    @include layout-1280() {
-      transform: translate3d(0, var(--awards-parallax-y), 0);
     }
   }
 
@@ -597,20 +586,6 @@ $_B_FS: 'footer-source';
 
     @include layout-768() {
       order: 0;
-    }
-  }
-
-  // Desktop scroll parallax — every band row drifts as ONE glued unit
-  // (the divider hairline and its WebGPU overlay canvas ride along so
-  // no seam opens between chrome and copy) inside the painted host.
-  @include layout-1280() {
-    &-docs,
-    &-divider,
-    &-divider-canvas,
-    &-credit,
-    &-rights,
-    &-version {
-      transform: translate3d(0, var(--awards-parallax-y), 0);
     }
   }
 }

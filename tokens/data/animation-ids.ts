@@ -48,7 +48,8 @@ export const ANIMATION_IDS = Object.freeze({
   GLITCH_PORTRAIT: 'glitch-portrait',
   /** Footer divider — hairline with traveling light band (canvas). */
   DIVIDER_SHEEN: 'divider-sheen',
-  /** Section titles/links — per-character pen-stroke write-on (instanced canvas + CSS). */
+  /** Section titles/links — per-character pen-stroke write-on, desktop-only
+   *  (instanced canvas + CSS); touch-primary sessions get a light fade. */
   TEXT_DRAW: 'text-draw',
   /** Tile border — traveling ring sheen loop (canvas). */
   RING_SHEEN: 'ring-sheen',

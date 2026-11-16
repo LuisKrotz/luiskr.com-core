@@ -166,6 +166,13 @@ export const DRAW_TIMINGS = Object.freeze({
   DRAW_ANIM_EXTRA_MS: 800,
   DRAW_WORD_MAX_DELAY: 120,
   DRAW_DEFAULT_DELAY: 100,
+  // Touch-primary reveal: the _mobile.scss light fade (0.45s) replaces the
+  // per-char schedule — done-time is the fade plus slack, not char math,
+  // so --done-gated styles (link underline restore) land promptly. Keep
+  // DRAW_FADE_MS in sync with the draw-text-fade duration in
+  // core/sass/components/media/draw-text/_mobile.scss.
+  DRAW_FADE_MS: 450,
+  DRAW_FADE_SLACK_MS: 100,
   DRAW_OBSERVER_THRESHOLD: 0.05,
   // calcDrawTextDelay target + clamps: the animation aims to finish within
   // TARGET_MS; per-char delay is clamped so long text stays brisk (≥1ms)

@@ -22,11 +22,6 @@
   display: block;
   position: relative;
   width: 100%;
-  // Desktop parallax seeds — views/home/parallax.ts overwrites these
-  // inline once per scroll frame inside the `desktop` width class;
-  // the consumers live on .card-stack-deck and .card-stack-foot.
-  --deck-parallax-y: #{to-rem($space-none)};
-  --foot-parallax-y: #{to-rem($space-none)};
 }
 
 .#{$_B_CARD_STACK} {

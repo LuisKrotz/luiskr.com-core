@@ -49,12 +49,6 @@
       margin-inline: -10%;
     }
 
-    // Desktop scroll parallax — the whole stage recedes against the
-    // static chrome (see :host seed + views/home/parallax.ts).
-    @include layout-1280() {
-      transform: translate3d(0, var(--deck-parallax-y), 0);
-    }
-
     &--dragging {
       cursor: grabbing;
 

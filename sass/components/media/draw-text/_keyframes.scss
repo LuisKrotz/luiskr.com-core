@@ -1,8 +1,10 @@
 // ════════════════════════════════════════════════════════════════════════════
-//  draw-text/_keyframes.scss — the char-draw keyframes: full desktop effect
-//  (blur + scaleY + translateY) and the ≤960px mobile variant (opacity +
-//  small translateY only — filter:blur is too expensive on mobile GPUs).
-//  Imported by draw-text.scss (manifest) — not compiled standalone.
+//  draw-text/_keyframes.scss — the char-draw keyframes: the desktop draw
+//  (fine-pointer sessions only — _mobile.scss replaces the whole draw with
+//  a light fade on coarse pointers) plus the ≤960px narrow-viewport
+//  variant for fine-pointer windows (opacity + small translateY only —
+//  filter:blur is too expensive on small screens). Imported by
+//  draw-text.scss (manifest) — not compiled standalone.
 // ════════════════════════════════════════════════════════════════════════════
 
 // Desktop: sharp pop-in — the glyph is either hidden or fully formed;
@@ -19,8 +21,8 @@
   }
 }
 
-// Mobile: no filter:blur (extremely expensive on mobile GPUs), no scaleY
-// Keep only opacity + small translateY for a light, performant fade-in effect
+// Narrow fine-pointer viewports: no filter:blur (extremely expensive on
+// small screens), no scaleY — opacity + small translateY only.
 @media (max-width: 960px) {
   @keyframes char-draw {
     0% {

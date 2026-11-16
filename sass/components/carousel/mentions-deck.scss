@@ -276,7 +276,10 @@ $_B_MENTIONS_DECK: 'mentions-deck';
   // Minimalist pagination dots — subtle muted discs that morph into a
   // compact white pill when active, while preserving ≥24px tap targets.
   // Wraps onto multiple centered rows when the item count outgrows the
-  // viewport width instead of overflowing the foot strip.
+  // viewport width instead of overflowing the foot strip. Portrait
+  // touch devices (phones + tablets held upright) navigate by swipe —
+  // the dot row is pointer chrome and stays hidden there; landscape
+  // tablets and desktop keep it.
   &-dots {
     display: flex;
     flex-wrap: wrap;
@@ -284,6 +287,10 @@ $_B_MENTIONS_DECK: 'mentions-deck';
     justify-content: center;
     gap: to-rem($space-2xs);
     max-width: 100%;
+
+    @media (pointer: coarse) and (orientation: portrait) {
+      display: none;
+    }
   }
 
   &-dot {

@@ -5,7 +5,7 @@
 //    _core            :host + word/space/char spans + inline-link underline
 //    _triggers        mount/slide/viewport reveal triggers + pending/done
 //    _keyframes       char-draw keyframes (desktop + ≤960px variant)
-//    _mobile          ≤768px word-level animation path
+//    _mobile          (pointer: coarse) light-fade path — draw is desktop-only
 //    _reduced-motion  reduced-motion overrides + focus ring scope
 //
 //  --i          : character index (set from template)

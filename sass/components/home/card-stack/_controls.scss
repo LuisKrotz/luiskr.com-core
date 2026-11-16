@@ -45,14 +45,6 @@
       justify-items: stretch;
       margin-top: var(--space-lg);
     }
-
-    // Desktop scroll parallax — the controls row rises counter to the
-    // deck so it pulls clear of the about section instead of being
-    // dragged over the boundary (see :host seed +
-    // views/home/parallax.ts).
-    @include layout-1280() {
-      transform: translate3d(0, var(--foot-parallax-y), 0);
-    }
   }
 
   // "DRAG OR SWIPE CARDS TO EXPLORE" — the hand icon + copy, parked at

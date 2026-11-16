@@ -13,11 +13,6 @@
   display: block;
   position: relative;
   width: 100%;
-  // Desktop parallax seeds — views/home/parallax.ts overwrites these
-  // inline on the host at ≥1280; .about-main and .about-profile-text
-  // consume them below so the two columns drift at different rates.
-  --about-parallax-main-y: #{to-rem($space-none)};
-  --about-parallax-text-y: #{to-rem($space-none)};
 }
 
 // Portrait light-field mesh — a 2D canvas painted by about/mesh.ts (a polar
@@ -122,9 +117,6 @@
       // viewport.
       padding-top: to-rem($space-3xl);
       padding-bottom: to-rem($space-3xl);
-      // Desktop scroll parallax — this column trails the scroll while
-      // the bio column leads (see :host seeds + views/home/parallax.ts).
-      transform: translate3d(0, var(--about-parallax-main-y), 0);
     }
 
     @include layout-2560() {
@@ -459,9 +451,6 @@
       justify-content: center;
       padding-block: to-rem($space-4xl);
       box-sizing: border-box;
-      // Desktop scroll parallax — counter-drift vs .about-main: the bio
-      // sweeps slightly ahead so the columns slide against each other.
-      transform: translate3d(0, var(--about-parallax-text-y), 0);
     }
   }
 
@@ -547,10 +536,8 @@
 // ── Print ───────────────────────────────────────────────────────────────────
 // The portrait stack prints flat: the light-field mesh + TV-glitch canvases
 // and the location HUD are decorative paint — only the photograph, title,
-// and bio copy reach paper. Parallax vars self-neutralize (the seeds are
-// zero and the inline overrides are stripped before the snapshot), so the
-// columns land in their natural split — which on paper is the tablet/
-// desktop column map driven by page width.
+// and bio copy reach paper. The columns land in their natural split —
+// which on paper is the tablet/desktop column map driven by page width.
 @media print {
   .#{$_B_ABOUT} {
     // Screen-only stage dressing — the keylight layer is ambient light,

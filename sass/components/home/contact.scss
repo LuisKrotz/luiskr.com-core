@@ -20,10 +20,6 @@
   display: block;
   position: relative;
   width: 100%;
-  // Desktop parallax seed — views/home/parallax.ts overwrites this
-  // inline once per scroll frame inside the `desktop` width class;
-  // the consumers are the title/subtitle/links row below.
-  --contact-parallax-y: #{to-rem($space-none)};
 }
 
 // Root block token — cross-child selectors (the mail channel's hover on
@@ -82,13 +78,6 @@ $_B_CONTACT: 'contact';
     @include layout-2560() {
       font-size: to-rem($space-4xl);
     }
-
-    // Desktop scroll parallax — the copy block drifts as one glued
-    // unit inside the painted band (see :host seed +
-    // views/home/parallax.ts).
-    @include layout-1280() {
-      transform: translate3d(0, var(--contact-parallax-y), 0);
-    }
   }
 
   // "Let's create something extraordinary" — the quiet line under the title (desktop).
@@ -107,11 +96,6 @@ $_B_CONTACT: 'contact';
     @include layout-768() {
       display: block;
     }
-
-    // Glued to the title — same parallax unit.
-    @include layout-1280() {
-      transform: translate3d(0, var(--contact-parallax-y), 0);
-    }
   }
 
   // The channel row — mail block left, secondary links right (desktop);
@@ -129,11 +113,6 @@ $_B_CONTACT: 'contact';
       justify-content: space-between;
       gap: to-rem($space-2xl);
       padding-bottom: to-rem($space-2xl);
-    }
-
-    // Glued to the title — same parallax unit.
-    @include layout-1280() {
-      transform: translate3d(0, var(--contact-parallax-y), 0);
     }
   }
 

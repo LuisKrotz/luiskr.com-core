@@ -1,51 +1,77 @@
 // ════════════════════════════════════════════════════════════════════════════
-//  draw-text/_mobile.scss — the ≤768px word-level animation path: animates
-//  .draw-text__word wrappers instead of each char span (200+ simultaneous
-//  char animations freeze mobile scroll; ~10–20 word animations don't).
-//  Imported by draw-text.scss (manifest) — not compiled standalone.
+//  draw-text/_mobile.scss — the touch-primary reveal path: the per-character
+//  draw is a desktop affordance, so on coarse-pointer devices (phones,
+//  tablets — the CSS mirror of the store's has_touch gate that keeps JS in
+//  words mode, see DrawText._needsCharSpans) every draw surface renders at
+//  rest and the whole block plays ONE light opacity fade instead of the
+//  write-on. No char spans ever mount on these devices, so this sheet only
+//  has to (a) neutralize the desktop char-draw rules for the word spans
+//  that DO render and (b) run the fade. Imported by draw-text.scss
+//  (manifest) — not compiled standalone.
 // ════════════════════════════════════════════════════════════════════════════
 
-// Root cause of mobile freeze: per-character animation creates 100–300+
-// simultaneous CSS animations (one per span). Mobile browsers cannot schedule
-// that many compositor operations without dropping frames.
-//
-// Fix: animate the .draw-text__word wrapper instead of each char.
-// JS sets --wi (word index) and --word-delay on every word span.
-// Result: ~10–20 word animations instead of ~200+ char animations.
-@media (max-width: 768px) {
-  @keyframes word-draw {
+// (pointer: coarse) is the has_touch counterpart: primary pointer is a
+// finger, not a mouse — the same devices the JS gate keeps out of chars
+// mode. Fine-pointer desktops keep the full char-draw on every viewport
+// width; a narrow desktop window is still a desktop.
+@media (pointer: coarse) {
+  // The reveal fade — one opacity pass over the whole text block, played
+  // when --visible lands (every trigger mode passes through that class;
+  // --pending keeps opacity 0 beforehand and --done needs no rule). `both`
+  // fill holds the end state until the done-swap removes the class.
+  // 0.45s mirrors DRAW_FADE_MS in core/tokens/media/dimensions.ts — the
+  // JS done-timer releases --done ~100ms after this lands.
+  @keyframes draw-text-fade {
     from {
       opacity: 0;
-      transform: translateY(0.08em);
     }
+
     to {
       opacity: 1;
-      transform: none;
     }
   }
 
-  // Word-level stagger replaces char-level stagger
+  .draw-text--visible {
+    animation: draw-text-fade 0.45s $ease-out both;
+  }
+
+  // Chars + generated quote marks at rest — every trigger context is
+  // repeated so this block's source order beats _triggers.scss (the
+  // .home-section-title/.aw-c-slide--active/.related-list-desc prefixes
+  // mirror the desktop rules verbatim; they are inert inside this shadow
+  // sheet today but stay correct if the sheet's adoption scope widens).
+  .draw-text--visible .draw-text__char,
+  .home-section-title .draw-text__char,
+  .aw-c-slide--active .draw-text__char,
+  .related-list-desc .draw-text__char,
+  .draw-text--visible q::before,
+  .home-section-title q::before,
+  .aw-c-slide--active q::before,
+  .related-list-desc q::before,
+  .draw-text--visible q::after,
+  .home-section-title q::after,
+  .aw-c-slide--active q::after,
+  .related-list-desc q::after {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    animation: none;
+    will-change: auto;
+  }
+
+  // Word wrappers — the spans JS actually renders on touch: no stagger,
+  // instantly visible; the container fade above carries the motion.
   .draw-text--visible .draw-text__word,
   .home-section-title .draw-text__word,
   .aw-c-slide--active .draw-text__word,
   .related-list-desc .draw-text__word {
-    opacity: 0;
-    animation: word-draw 0.45s $ease-out forwards;
-    animation-delay: calc(var(--offset, 0ms) + var(--wi, 0) * var(--word-delay, 100ms));
-  }
-
-  // Chars inside animated words are immediately visible — word wrapper handles the fade
-  .draw-text--visible .draw-text__char,
-  .home-section-title .draw-text__char,
-  .aw-c-slide--active .draw-text__char,
-  .related-list-desc .draw-text__char {
     opacity: 1;
     transform: none;
     animation: none;
     will-change: auto;
   }
 
-  // Done state: release word GPU layers once animation is complete
+  // Done state — release any lingering layer hints once the fade lands.
   .draw-text--done .draw-text__word {
     opacity: 1;
     animation: none;
