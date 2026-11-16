@@ -305,6 +305,46 @@ describe('corner-brackets', () => {
       expect(widget.resizes.length).toBe(2)
     })
 
+    test('the ResizeObserver arm coalesces a second notification while a frame is pending', async () => {
+      makeWidget()
+      mountResult = { canvas: null, widget, destroy: jest.fn() }
+
+      const ros = []
+      const PrevRO = globalThis.ResizeObserver
+
+      globalThis.ResizeObserver = class {
+        constructor(cb) {
+          this.cb = cb
+          ros.push(this)
+        }
+        observe() {}
+        disconnect() {}
+      }
+
+      mount()
+
+      await flush()
+
+      globalThis.ResizeObserver = PrevRO
+
+      const frames = []
+      const prevRaf = globalThis.requestAnimationFrame
+
+      globalThis.requestAnimationFrame = (cb) => (frames.push(cb), frames.length)
+      ros[0].cb()
+
+      const scheduled = frames.length
+
+      ros[0].cb()
+
+      expect(frames.length).toBe(scheduled)
+
+      frames.forEach((cb) => cb(0))
+      globalThis.requestAnimationFrame = prevRaf
+
+      expect(widget.resizes.length).toBe(2)
+    })
+
     test('a retarget while the mount is in flight early-returns colors()', () => {
       makeWidget()
       mountResult = { canvas: null, widget, destroy: jest.fn() }

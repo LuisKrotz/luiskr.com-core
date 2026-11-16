@@ -276,6 +276,39 @@ describe('theme-slider init tail', () => {
     expect(host.width).toBe(400)
   })
 
+  test('observeResize coalesces a second notification while a frame is pending', async () => {
+    const widget = { set_size: jest.fn(), resize: jest.fn() }
+
+    mountResult = { canvas: null, widget, destroy: jest.fn() }
+
+    globalThis.ResizeObserver = MockRO
+
+    const host = makeHost()
+
+    tryWasm(host)
+    await Promise.resolve()
+    await new Promise((r) => setTimeout(r, 10))
+
+    const prevRaf = globalThis.requestAnimationFrame
+    const frames = []
+
+    globalThis.requestAnimationFrame = (cb) => (frames.push(cb), frames.length)
+    capturedRoCb([{ contentRect: { width: 400 } }])
+
+    const scheduled = frames.length
+
+    // The pending-frame guard drops the second delivery outright — the
+    // next notification re-measures fresh instead of doubling the write.
+    capturedRoCb([{ contentRect: { width: 500 } }])
+
+    expect(frames.length).toBe(scheduled)
+
+    frames.forEach((cb) => cb(0))
+    globalThis.requestAnimationFrame = prevRaf
+
+    expect(host.width).toBe(400)
+  })
+
   test('initRest falls back when GL is unavailable and completes on GL', () => {
     glResult = null
 

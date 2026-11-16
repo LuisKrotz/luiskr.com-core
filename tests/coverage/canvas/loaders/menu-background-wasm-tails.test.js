@@ -324,6 +324,55 @@ describe('menu-background wasm path', () => {
     parent.remove()
   })
 
+  test('RO callback coalesces a second notification while a frame is pending', async () => {
+    const ros = []
+    const realRO = globalThis.ResizeObserver
+
+    globalThis.ResizeObserver = class {
+      constructor(cb) {
+        this.cb = cb
+
+        ros.push(this)
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+
+    const MenuBackgroundWebGL = await loadClass()
+    const { canvas, parent } = makeCanvas()
+
+    document.body.appendChild(parent)
+
+    const bg = new MenuBackgroundWebGL(canvas)
+
+    await flush()
+
+    bg.useWebGL = true
+    bg.start()
+
+    // A second delivery while the resize frame is still queued collapses
+    // into it — one backing-store write per painted frame, not per notify.
+    const frames = []
+    const prevRaf = globalThis.requestAnimationFrame
+
+    globalThis.requestAnimationFrame = (cb) => (frames.push(cb), frames.length)
+    ros[0].cb()
+
+    const scheduled = frames.length
+
+    ros[0].cb()
+
+    expect(frames.length).toBe(scheduled)
+
+    frames.forEach((cb) => cb(0))
+    globalThis.requestAnimationFrame = prevRaf
+    globalThis.ResizeObserver = realRO
+
+    bg.destroy()
+    parent.remove()
+  })
+
   test('reduced motion draws one fully-revealed static frame', async () => {
     const MenuBackgroundWebGL = await loadClass()
     const { canvas, parent } = makeCanvas()
