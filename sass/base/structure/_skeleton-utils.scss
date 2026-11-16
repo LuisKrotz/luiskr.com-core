@@ -61,6 +61,15 @@
       animation: skeleton-shimmer 1.8s linear infinite;
       will-change: transform;
       pointer-events: none;
+
+      // Mobile GPU budget: skeleton rows stack by the dozen while data
+      // resolves — each animated sweep would pin its own composited
+      // layer. The static --skel-bg-1 surface underneath already reads
+      // as "loading", so the sweep just stops.
+      @include gpu-budget {
+        animation: none;
+        will-change: auto;
+      }
     }
   }
 

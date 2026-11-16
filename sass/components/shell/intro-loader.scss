@@ -187,6 +187,13 @@ $_B_LOADER: 'intro-loader';
     translate: -50% calc(-50% - #{to-rem($space-4xl)});
     width: to-rem($space-8xl);
     height: to-rem($space-8xl);
+    // Mobile GPU budget: the rings rotate forever, so each pins a
+    // full-viewport composited layer — 610/987 CSS px squares on a ~400px
+    // phone. Shrinking the boxes shrinks the rasters they carry.
+    @include gpu-budget {
+      width: to-rem($space-6xl);
+      height: to-rem($space-6xl);
+    }
     border-radius: var(--radius-round);
     border: to-rem($space-hairline) solid rgba($color-white, 0.1);
     border-top-color: rgba($color-white, 0.8);
@@ -204,6 +211,11 @@ $_B_LOADER: 'intro-loader';
     translate: -50% calc(-50% - #{to-rem($space-4xl)});
     width: to-rem($space-9xl);
     height: to-rem($space-9xl);
+    // Mobile GPU budget: same persistent-layer shrink as -spinner above.
+    @include gpu-budget {
+      width: to-rem($space-7xl);
+      height: to-rem($space-7xl);
+    }
     border-radius: var(--radius-round);
     border: to-rem($space-hairline) solid rgba($color-white, 0.05);
     border-bottom-color: rgba($color-white, 0.4);

@@ -126,13 +126,16 @@
     // blur halo overruns the mobile GPU/compositing budget and the
     // tab gets jetsam-killed on load. The stacked pile still animates
     // its transforms — it just rasterizes instead of pinning N layers.
-    @media (max-width: 1023px) {
+    // The shadow drops to the standard card rung and the transition
+    // sheds its per-frame box-shadow/border-color repaints for the same
+    // reason; &--hidden later in source keeps its own slimmer transition.
+    @include gpu-budget {
       will-change: auto;
-
-      &::after,
-      &::before {
-        content: none;
-      }
+      box-shadow: var(--shadow-card);
+      transition:
+        transform 0.52s cubic-bezier(0.3, 0.9, 0.35, 1),
+        opacity 0.28s ease,
+        visibility 0.45s ease;
     }
 
     // Front card — the lit, face-on plane of the coverflow; the hero
@@ -141,6 +144,13 @@
       background: color-mix(in srgb, var(--color-white-raw) 9%, var(--bg-dark));
       border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-white-raw) 25%);
       box-shadow: var(--shadow-card-stack-featured);
+
+      // Mobile GPU budget: the featured stack shadow's deep blur
+      // inflates the card's raster ~2x — the standard featured rung
+      // keeps the lift at a fraction of the layer cost.
+      @include gpu-budget {
+        box-shadow: var(--shadow-card-featured);
+      }
     }
 
     // Draw-pile faces — on the stacked layouts only the ACTIVE card
@@ -195,6 +205,15 @@
         linear-gradient(var(--color-white-raw) 0 0);
       mask-composite: exclude;
       pointer-events: none;
+
+      // Mobile GPU budget — THE CASCADE FIX: this gate sits at the end of
+      // the sheen block, AFTER the `content: ''` above, so on coarse
+      // pointers the rings finally drop out. The old max-width:1023px
+      // rule lived earlier in source and lost the equal-specificity tie
+      // to that very declaration — the sheens rendered on phones anyway.
+      @include gpu-budget {
+        content: none;
+      }
     }
 
     &::after {
@@ -305,7 +324,7 @@
       pointer-events: none;
 
       // Blur filter off the mobile budget — the halo is desktop-only.
-      @media (max-width: 1023px) {
+      @include gpu-budget {
         content: none;
       }
     }
@@ -409,7 +428,7 @@
       pointer-events: none;
 
       // One fewer painted layer per card on the mobile pile.
-      @media (max-width: 1023px) {
+      @include gpu-budget {
         content: none;
       }
     }

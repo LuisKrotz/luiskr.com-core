@@ -30,6 +30,16 @@
       opacity 0.2s ease;
     -webkit-backdrop-filter: blur(to-rem($space-2xs));
     backdrop-filter: blur(to-rem($space-2xs));
+
+    // Mobile GPU budget: 100+ expand triggers each forcing a backdrop
+    // snapshot is unaffordable — drop the filter and keep a translucent
+    // dark wash so the button still reads over the figure.
+    @include gpu-budget {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      background: color-mix(in srgb, var(--color-black-raw) 35%, transparent);
+    }
+
     // The animated corner borders
     &::before,
     &::after {

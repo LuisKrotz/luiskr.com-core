@@ -103,6 +103,12 @@
     background-position: 100% 100%;
     animation: mosaic-border-sheen 9s ease-in-out infinite alternate;
     pointer-events: none;
+
+    // Mobile GPU budget: the masked sheen ring is a composited layer per
+    // tile — the static ring paint stays, only the opacity drift dies.
+    @include gpu-budget {
+      animation: none;
+    }
   }
 
   &:is(:hover, :focus-visible) {

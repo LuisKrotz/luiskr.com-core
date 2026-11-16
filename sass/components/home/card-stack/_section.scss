@@ -98,7 +98,7 @@
 
     // The full-viewport animated lobe is one more persistent composited
     // layer the mobile pile can't afford — the static wash stays.
-    @media (max-width: 1023px) {
+    @include gpu-budget {
       animation: none;
     }
 

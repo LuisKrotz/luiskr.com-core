@@ -37,6 +37,12 @@
     transform-origin: 100% 50%;
     animation: #{$_B_INTERNAL}-keylight 18s ease-in-out infinite alternate;
 
+    // Mobile GPU budget: no persistent composited layer — the static
+    // --deck-glow wash stays painted, only the drift dies.
+    @include gpu-budget {
+      animation: none;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       animation: none;
     }
@@ -723,6 +729,12 @@
       pointer-events: none;
       transform-origin: 100% 50%;
       animation: #{$_B_INTERNAL}-keylight 18s ease-in-out infinite alternate;
+
+      // Mobile GPU budget: no persistent composited layer — the static
+      // --deck-glow wash stays painted, only the drift dies.
+      @include gpu-budget {
+        animation: none;
+      }
 
       @media (prefers-reduced-motion: reduce) {
         animation: none;

@@ -31,7 +31,7 @@
     backdrop-filter: blur(var(--space-lg));
     // backdrop-filter forces the whole sheet through a second filtered
     // pass every frame — too heavy for the mobile GPU budget.
-    @media (max-width: 1023px) {
+    @include gpu-budget {
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
     }

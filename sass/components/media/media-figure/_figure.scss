@@ -44,6 +44,17 @@ figure {
   animation: skeleton-shimmer 1.8s linear infinite;
   will-change: transform;
   pointer-events: none;
+
+  // Mobile GPU budget: 100+ unloaded figures each pinning an animated
+  // shimmer layer is what blows the layer budget — hold one static
+  // skeleton-coloured wash instead (no transform, no animation, no
+  // will-change → paints with the figure, zero extra layers).
+  @include gpu-budget {
+    animation: none;
+    will-change: auto;
+    transform: none;
+    background: var(--skel-bg-1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

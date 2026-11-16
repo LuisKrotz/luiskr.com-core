@@ -21,10 +21,25 @@
     transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 
+  // Mobile GPU budget: the permanent will-change pins a composited layer
+  // for the carousel's whole lifetime — drop it and restate the same
+  // pre-in-view offset as a static translateY (no animation runs on it,
+  // so nothing needs promoting).
+  @include gpu-budget {
+    will-change: auto;
+    transform: translateY(#{to-rem($space-xl)});
+  }
+
   &.carousel--in-view {
     opacity: 1;
     transform: translate3d(0, 0, 0);
     transition: none;
+
+    // Mobile GPU budget: `none` over the translate3d zero — identical
+    // paint, one less transform function for the compositor to track.
+    @include gpu-budget {
+      transform: none;
+    }
   }
 
   // ── Track ──────────────────────────────────────────────────────────────

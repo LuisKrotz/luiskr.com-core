@@ -142,6 +142,12 @@ $_MEDIA-H-LG: to-rem($space-md * ($space-xl + $space-2xs * 2));
     &::before {
       background-position: 100% 100%;
       animation: related-border-sheen 9s ease-in-out infinite alternate;
+
+      // Mobile GPU budget: the masked sheen ring is a composited layer
+      // per row — the static ring paint stays, only the drift dies.
+      @include gpu-budget {
+        animation: none;
+      }
     }
 
     // Skeleton row — only skeleton inners render empty (real rows always

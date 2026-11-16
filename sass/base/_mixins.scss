@@ -304,6 +304,27 @@
   }
 }
 
+/// `@media (max-width: 1023px), (pointer: coarse)` — the mobile GPU-budget
+/// gate. Phone/tablet viewports AND coarse-pointer devices (iPads and
+/// foldables in landscape, which the width gate alone misses) share one
+/// compositing budget: persistent animated layers, backdrop filters, and
+/// oversized shadows each pin a full-viewport raster that mobile GPUs
+/// cannot afford — measured at ~380MB–1.2GB of layer memory on a project
+/// page, enough to crash iOS Safari on load. Wrap any declaration that
+/// would otherwise hold a composited layer or a per-frame repaint cost
+/// (animation, will-change, backdrop-filter, oversized box-shadow, sheen
+/// pseudos) so the override lands inside the rule, AFTER the declaration
+/// it replaces — source order is what makes it win. The compound query
+/// is deliberately non-splittable: the ?tiers css splitter keeps it in
+/// the base sheet, preserving cascade order. Desktop (fine pointer,
+/// ≥1024px) rendering is untouched.
+/// @content Declarations to emit inside the gate.
+@mixin gpu-budget {
+  @media (max-width: 1023px), (pointer: coarse) {
+    @content;
+  }
+}
+
 // Keyboard focus ring — a crisp hairline + offset, inked by the theme-aware
 // --focus-ring token (deep teal light / signature cyan dark). Emits
 // declarations only — nest under `&:focus-visible` at the call site.

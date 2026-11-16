@@ -89,11 +89,27 @@ body {
   &::before {
     background: var(--bg-glow);
     animation: body-glow-drift 16s cubic-bezier(0.37, 0, 0.3, 1) infinite alternate;
+
+    // Mobile GPU budget: one static wash layer instead of three drifting
+    // ones — the sibling ::after and #app::before drop out below, so this
+    // layer stacks all three gradient lists itself (first listed paints
+    // on top, matching today's z-order). inset:-25% keeps the keyframe-0%
+    // frame, so the field reads identical, just unmoving.
+    @include gpu-budget {
+      animation: none;
+      background: var(--bg-glow-3), var(--bg-glow-2), var(--bg-glow);
+    }
   }
 
   &::after {
     background: var(--bg-glow-2);
     animation: body-glow-drift-alt 21s cubic-bezier(0.37, 0, 0.3, 1) infinite alternate;
+
+    // Mobile GPU budget: no persistent composited layer — ::before above
+    // already carries this wash statically.
+    @include gpu-budget {
+      content: none;
+    }
   }
 }
 
@@ -180,6 +196,12 @@ body {
     pointer-events: none;
     background: var(--bg-glow-3);
     animation: app-glow-sweep 27s cubic-bezier(0.37, 0, 0.3, 1) infinite alternate;
+
+    // Mobile GPU budget: no persistent composited layer — body's ::before
+    // carries this wash statically on coarse pointers.
+    @include gpu-budget {
+      content: none;
+    }
   }
 
   // Film-grain dither — the topmost backdrop stratum: a static monochrome

@@ -43,6 +43,14 @@
     animation: skeleton-shimmer 2.4s ease-in-out infinite;
     will-change: transform;
     pointer-events: none;
+
+    // Mobile GPU budget: same persistent-layer diet as the shared
+    // skeleton-utils sweep — the static --skel-bg-1 surface already
+    // reads as "loading".
+    @include gpu-budget {
+      animation: none;
+      will-change: auto;
+    }
   }
 
   &--block {
