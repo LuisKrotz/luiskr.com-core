@@ -437,6 +437,13 @@ export const CARD_STACK_LAYOUT = Object.freeze({
    *  control; the section's IntersectionObserver holds it off-screen
    *  so a scrolled-away deck never advances unseen. */
   AUTOPLAY_MS: 10000,
+  /** Settle window (ms) for the front-fit ResizeObserver — the
+   *  description typewriter grows the observed info column every
+   *  frame, so each notification resets this timer and the fit lands
+   *  once when the growth burst ends instead of writing per notify
+   *  (the write→notify cycle browsers report as undelivered
+   *  notifications). */
+  FIT_SETTLE_MS: 120,
   /** Border-light inset (px) — the lit band hugs the card's edge this
    *  far inside the border line so the fill stays within the card
    *  while its glow blooms across the border. */
