@@ -6,11 +6,18 @@
  * outside-press + Escape dismissal (incl. the empty-composedPath fallback
  * and detached-chip pruning), and the document-less arm/disarm guards.
  */
-import { joustChip, joustClick, joustCollapseAll } from '@core/utils/dom/joust.js'
+import {
+  joustChip,
+  joustClick,
+  joustCollapseAll,
+  joustDirectTap,
+  joustRecordPointer,
+} from '@core/utils/dom/joust.js'
 import { JOUST_CLASSES } from '@core/tokens/classes/joust.js'
 import { KEYS } from '@core/tokens/primitives.js'
 import { HTML_TAGS } from '@core/tokens/elements/html.js'
 import { CHAR_STRINGS } from '@core/tokens/strings/chars.js'
+import { INPUT_STRINGS } from '@core/tokens/strings/input.js'
 import { KEYBOARD_EVENTS, MOUSE_EVENTS, POINTER_EVENTS } from '@core/tokens/events/dom.js'
 
 /** Mirrors the setup.js matchMedia mock shape with a switchable `matches`. */
@@ -305,5 +312,35 @@ describe('joust gate tails', () => {
     expect(chip.classList.contains(JOUST_CLASSES.JOUST_OPEN)).toBe(false)
 
     window.matchMedia = prev
+  })
+})
+
+describe('joustDirectTap — last-recorded pointer type', () => {
+  /** A minimal pointerdown-shaped event — happy-dom has no PointerEvent. */
+  const press = (pointerType) =>
+    Object.assign(new Event(POINTER_EVENTS.POINTERDOWN), { pointerType })
+
+  test('no recorded press reads as not-a-tap', () => {
+    expect(joustDirectTap()).toBe(false)
+  })
+
+  test('touch and pen presses count as direct taps', () => {
+    joustRecordPointer(press(INPUT_STRINGS.TOUCH))
+
+    expect(joustDirectTap()).toBe(true)
+
+    joustRecordPointer(press(INPUT_STRINGS.PEN))
+
+    expect(joustDirectTap()).toBe(true)
+  })
+
+  test('a mouse press clears the direct-tap flag', () => {
+    joustRecordPointer(press(INPUT_STRINGS.TOUCH))
+
+    expect(joustDirectTap()).toBe(true)
+
+    joustRecordPointer(press(INPUT_STRINGS.MOUSE))
+
+    expect(joustDirectTap()).toBe(false)
   })
 })

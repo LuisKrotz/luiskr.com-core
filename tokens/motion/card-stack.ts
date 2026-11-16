@@ -272,7 +272,12 @@ export const CARD_STACK_TIERS: readonly CardStackTier[] = Object.freeze([
    *  the copy on the left while the deck keeps the MOBILE pile pose on
    *  the right — image-only 16:9 landscape sheets like the fan tiers,
    *  sized by the deck column's width (the height budget only bites on
-   *  very short windows). */
+   *  very short windows). The pile stair is MIRRORED right here, not
+   *  the portrait up-left: the deck column abuts the text column on its
+   *  left edge, and a left-climbing stair stepped each deeper card
+   *  ~6–31% of a card width past that edge — over the copy (the iPad
+   *  landscape text/cards overlap). Right-climbing bleeds into the
+   *  page's right margin like the portrait bands bleed into theirs. */
   Object.freeze({
     MIN_VW: 1024,
     PORTRAIT: false,
@@ -286,15 +291,15 @@ export const CARD_STACK_TIERS: readonly CardStackTier[] = Object.freeze([
     DEAL_Y: 0.1,
     DEAL_RZ: 4,
     DEAL_D: 0.35,
-    FAN_X: -0.12,
-    FAN_X_STEP: -0.065,
+    FAN_X: 0.12,
+    FAN_X_STEP: 0.065,
     FAN_Y: -0.1,
     FAN_Y_STEP: -0.06,
     FAN_RZ: -6,
     FAN_RZ_STEP: -4,
     FAN_D: 0.4,
     FAN_D_STEP: 0.16,
-    PARK_X: 0.24,
+    PARK_X: -0.24,
     PARK_Y: 0.1,
     PARK_RZ: 18,
     PARK_D: 1.8,

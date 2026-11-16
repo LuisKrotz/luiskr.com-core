@@ -20,10 +20,43 @@
 import { JOUST_CLASSES } from '@core/tokens/classes/joust.js'
 import { MEDIA_QUERIES, KEYS } from '@core/tokens/primitives.js'
 import { KEYBOARD_EVENTS, POINTER_EVENTS } from '@core/tokens/events/dom.js'
+import { INPUT_STRINGS } from '@core/tokens/strings/input.js'
 import { TYPE_STRINGS } from '@core/tokens/strings/types.js'
 
 /** Chips currently pinned open by a joust tap — one member in practice (single-open). */
 const _open = new Set<Element>()
+
+/**
+ * Pointer type of the most recent pointerdown — the click a tap produces
+ * carries no pointerType of its own, so callers splitting tap-vs-pointer
+ * activation read this instead of the device-level has_touch flag (which
+ * a stylus or earlier mouse press can flip on hybrid hardware). Fed by
+ * the app's global pointerdown listener via joustRecordPointer — the
+ * record must precede the click it classifies, so it can't be armed
+ * lazily inside a gate call.
+ */
+let _lastPointerType: string | undefined
+
+/**
+ * Records a pointerdown's pointer type for the activation that follows.
+ * The app's input listeners already classify every press — this just
+ * keeps the last type where the click handlers can reach it.
+ * @param e The pointerdown event.
+ */
+export const joustRecordPointer = (e: Event): void => {
+  _lastPointerType = (e as PointerEvent).pointerType
+}
+
+/**
+ * True when the current activation followed a touch or pen pointerdown —
+ * direct-manipulation presses that must bypass the joust pour outright
+ * (a first tap that only expands the label reads as a dead press). A
+ * stale value can only ever widen the bypass by one activation — the
+ * next real pointer press refreshes it.
+ * @returns True for touch/pen-originated input.
+ */
+export const joustDirectTap = (): boolean =>
+  _lastPointerType === INPUT_STRINGS.TOUCH || _lastPointerType === INPUT_STRINGS.PEN
 
 /**
  * Hover-less-primary check — `(hover: none)` marks devices whose primary
