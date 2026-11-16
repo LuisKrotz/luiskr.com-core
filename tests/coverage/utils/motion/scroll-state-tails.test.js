@@ -5,7 +5,7 @@
 import { jest } from '@jest/globals'
 import { h } from '@core/jsx.js'
 
-import { isScrolling, onScrollStop } from '@core/utils/motion/scroll-state.js'
+import { isScrolling, noteScrollActivity, onScrollStop } from '@core/utils/motion/scroll-state.js'
 
 import '@website/components/feedback/CookieBanner.js'
 import '@website/components/home/ContactSection.js'
@@ -62,6 +62,26 @@ describe('scroll-state tails', () => {
     }
 
     expect(cb).toHaveBeenCalled()
+  })
+
+  test('noteScrollActivity arms the gesture flag for element scrollers', async () => {
+    // Carousel tracks / drag decks never emit window scroll events —
+    // the explicit marker must latch the same flag + is-scrolling class
+    // and drain on the same settle debounce.
+    noteScrollActivity()
+
+    expect(isScrolling()).toBe(true)
+    expect(document.documentElement.classList.contains(STATE_CLASSES.IS_SCROLLING)).toBe(true)
+
+    // Repeated calls inside the gesture re-arm the debounce, not stack it.
+    noteScrollActivity()
+
+    expect(isScrolling()).toBe(true)
+
+    await flush(160)
+
+    expect(isScrolling()).toBe(false)
+    expect(document.documentElement.classList.contains(STATE_CLASSES.IS_SCROLLING)).toBe(false)
   })
 
   test('module skips window listeners when no window exists', async () => {

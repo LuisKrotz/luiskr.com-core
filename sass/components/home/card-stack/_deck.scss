@@ -147,25 +147,15 @@
       }
     }
 
-    // Draw-pile faces — on the stacked layouts only the ACTIVE card
-    // carries project copy. The info column NEVER leaves flow and the
-    // media NEVER leaves its 16:9 band: flipping layout geometry on the
-    // --active edge used to restyle every card crossing the front
-    // (cover aspect ↔ fill, info in-flow ↔ absolute), which forced a
-    // full relayout + image rescale mid-gesture — the "press shows a
-    // badly scaled image" bug and the per-nav layout passes. Hiding the
-    // copy with opacity/visibility keeps the swap compositor-only:
-    // behind cards keep the same anatomy (cover band + dark copy
-    // floor), they just don't show the glyphs. (The fan tiers hide the
-    // info entirely — the ≥1024 landscape rule below — so this only
-    // ever bites on stacked cards.)
-    &:not(&--active) {
-      .#{$_B_CARD_STACK}-card-info {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-      }
-    }
+    // Draw-pile faces — EVERY stacked card keeps its copy column
+    // painted: the info column never leaves flow, the media never
+    // leaves its band, and the copy is never gated on --active, so a
+    // card is never a lonely image — not at mount (before the first
+    // pose pass), not mid-crossing (when no card is inside the front
+    // epsilon), not while pressed. Behind cards' own bands mostly
+    // stay covered by the front card anyway; the visible slivers show
+    // their title band, matching the entire-card design. (The fan
+    // tiers hide the info entirely — the ≥1024 landscape rule below.)
 
     // Living card edge — the same hairline sheen every bordered surface
     // carries (related rows, mosaic tiles, footer divider family): a
@@ -451,13 +441,12 @@
     // card's dark edges; space-xl airs the text measure on the stacked
     // layouts (mobile + tablet).
     padding: 0 var(--space-xl) var(--space-xl);
-    // The draw-pile swap (above) hides this column on non-front cards —
-    // it fades back in as the card crosses into the front slot mid-deal.
-    // Padding rides the transition too: the 768-landscape breakpoint
-    // flips this column's geometry (seam-straddle → flush side column)
-    // and an untransitioned snap reads as a positioning bug on a slow
-    // resize/rotate. (flex-basis itself can't join — auto↔54% is a
-    // discrete flip, which would just delay the snap.)
+    // Padding rides the transition: the 768-landscape breakpoint flips
+    // this column's geometry (seam-straddle → flush side column) and an
+    // untransitioned snap reads as a positioning bug on a slow
+    // resize/rotate. The opacity/visibility legs cover the print
+    // snapshot's card freeze. (flex-basis itself can't join — auto↔54%
+    // is a discrete flip, which would just delay the snap.)
     transition:
       opacity 0.3s ease,
       visibility 0.3s ease,

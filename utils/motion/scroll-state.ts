@@ -93,6 +93,20 @@ if (typeof window !== TYPE_STRINGS.UNDEFINED) {
 export const isScrolling = () => isWindowScrolling
 
 /**
+ * Flags a scroll-class gesture as in progress — for element scrollers
+ * (carousel tracks) and drag decks (the card-stack swipe) whose scrolls/
+ * pans never emit a window scroll event. Without this marker the
+ * is-scrolling state misses their gestures entirely, so parked work —
+ * media-layer publishes, DOM-bitmap encodes, LOADED-class flips — fires
+ * mid-swipe and eats the frame budget. Re-arms the same settle debounce
+ * a window scroll uses; call it from the element's own scroll/move
+ * stream.
+ */
+export const noteScrollActivity = (): void => {
+  handleScroll()
+}
+
+/**
  * Queues a one-shot callback for the next scroll stop; fires immediately
  * when the window isn't scrolling right now.
  */
