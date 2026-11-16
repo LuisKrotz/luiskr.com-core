@@ -120,6 +120,21 @@
       box-shadow 0.28s ease;
     will-change: transform;
 
+    // Phones / small tablets — drop the per-card layer promotion and
+    // every always-on composited effect: ~12+ cards each carrying a
+    // will-change layer plus masked sheen rings plus an animated
+    // blur halo overruns the mobile GPU/compositing budget and the
+    // tab gets jetsam-killed on load. The stacked pile still animates
+    // its transforms — it just rasterizes instead of pinning N layers.
+    @media (max-width: 1023px) {
+      will-change: auto;
+
+      &::after,
+      &::before {
+        content: none;
+      }
+    }
+
     // Front card — the lit, face-on plane of the coverflow; the hero
     // display throws the deepest pooled shadow of the set.
     &--active {
@@ -288,6 +303,11 @@
       filter: blur(var(--space-xs));
       opacity: 0.4;
       pointer-events: none;
+
+      // Blur filter off the mobile budget — the halo is desktop-only.
+      @media (max-width: 1023px) {
+        content: none;
+      }
     }
   }
 
@@ -387,6 +407,11 @@
         color-mix(in srgb, var(--color-white-raw) 9%, transparent) 100%
       );
       pointer-events: none;
+
+      // One fewer painted layer per card on the mobile pile.
+      @media (max-width: 1023px) {
+        content: none;
+      }
     }
 
     img {
