@@ -50,6 +50,11 @@ describe('orphan-seps watcher', () => {
   })
 
   test('returns a no-op teardown when ResizeObserver is undefined', () => {
+    // happy-dom provides ResizeObserver — force the absent-engine arm
+    // explicitly or the guard branch never runs.
+    delete globalThis.ResizeObserver
+    delete globalThis.window?.ResizeObserver
+
     const teardown = watchOrphanSeps(document.createElement('nav'), 'pair', 'lead')
 
     expect(typeof teardown).toBe('function')
@@ -104,5 +109,22 @@ describe('orphan-seps watcher', () => {
     expect(lastRo.observe).toHaveBeenCalledWith(nav)
 
     teardown()
+  })
+
+  test('coalesces refires while a frame is already pending', () => {
+    globalThis.ResizeObserver = MockRO
+
+    const nav = makeNav([10, 40])
+    const prevRaf = globalThis.requestAnimationFrame
+
+    // rAF that never invokes its callback keeps `raf` truthy — the second
+    // RO refire must hit the `if (raf) return` coalescing guard.
+    globalThis.requestAnimationFrame = () => 1
+
+    watchOrphanSeps(nav, 'pair', 'lead')
+    capturedRoCb()
+    capturedRoCb()
+
+    globalThis.requestAnimationFrame = prevRaf
   })
 })

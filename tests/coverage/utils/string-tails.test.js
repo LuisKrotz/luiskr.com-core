@@ -7,6 +7,7 @@
 import {
   stripHtml,
   escapeHtml,
+  sanitizeAttrString,
   slugify,
   mediaSlugSeq,
   splitDrawSentences,
@@ -29,6 +30,28 @@ describe('string utils tails', () => {
     expect(escapeHtml('<a href="x">&amp;\'')).toBe('&lt;a href=&quot;x&quot;&gt;&amp;amp;&#39;')
     expect(escapeHtml('')).toBe(CHAR_STRINGS.EMPTY)
     expect(escapeHtml(null)).toBe(CHAR_STRINGS.EMPTY)
+  })
+
+  test('sanitizeAttrString strips handlers and scriptable URLs, keeps presentation attrs', () => {
+    expect(sanitizeAttrString('')).toBe(CHAR_STRINGS.EMPTY)
+    expect(sanitizeAttrString(null)).toBe(CHAR_STRINGS.EMPTY)
+    expect(sanitizeAttrString(42)).toBe(CHAR_STRINGS.EMPTY)
+
+    // Event handlers drop entirely; surrounding attrs survive untouched.
+    expect(sanitizeAttrString(' class="a" onclick="x()" title="t"')).toBe(' class="a"  title="t"')
+    expect(sanitizeAttrString(" onmouseover='y()'")).toBe(' ')
+
+    // Scriptable URL schemes are neutralized inside URL-bearing attrs.
+    expect(sanitizeAttrString(' href="javascript:alert(1)"')).toBe(' href=""')
+    expect(sanitizeAttrString('href=JaVaScRiPt:alert(1)')).toBe('href=')
+    expect(sanitizeAttrString(" src='vbscript:x'")).toBe(" src=''")
+
+    // data: survives only for raster image types — svg/html data URIs strip.
+    expect(sanitizeAttrString(' src="data:image/png;base64,AAA"')).toBe(
+      ' src="data:image/png;base64,AAA"'
+    )
+    expect(sanitizeAttrString(' src="data:image/svg+xml;base64,AAA"')).toBe(' src=""')
+    expect(sanitizeAttrString(' href="data:text/html,x"')).toBe(' href=""')
   })
 
   test('slugify folds case, punctuation and whitespace runs', () => {

@@ -123,6 +123,32 @@ export const escapeHtml = (str: string): string => {
 }
 
 /**
+ * Strips the executable surface from a raw HTML attribute string. Tokenizers
+ * that re-emit authored markup (draw-text char spans) pass attribute text
+ * through verbatim, so `on*=` event handlers and `javascript:`/`vbscript:`/
+ * non-image `data:` URL schemes are removed before the string reaches
+ * innerHTML. Presentation attributes (class, style, data-*, aria-*) pass
+ * through untouched — this scrubs vectors, it does not allowlist attrs.
+ * Pure ESM utility function, tree-shakeable.
+ * @param {string} attrStr — raw attribute text captured between a tag name and `>`.
+ * @returns {string} attribute text safe to embed inside a tag.
+ */
+export const sanitizeAttrString = (attrStr: string): string => {
+  if (!attrStr || typeof attrStr !== TYPE_STRINGS.STRING) return ATTR_VALUES.EMPTY
+
+  return attrStr
+    .replace(/(\s|^)on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '$1')
+    .replace(
+      /(\s|^)((?:href|src|xlink:href|formaction|action|poster|cite|data|background|longdesc|usemap)\s*=\s*["']?)\s*(?:javascript|vbscript)\s*:[^"'\s>]*/gi,
+      '$1$2'
+    )
+    .replace(
+      /(\s|^)((?:href|src|xlink:href|formaction|action|poster|cite|data|background|longdesc|usemap)\s*=\s*["']?)\s*data\s*:(?!image\/(?:png|gif|webp|jpe?g|avif|bmp|x-icon|vnd\.microsoft\.icon)\b)[^"'\s>]*/gi,
+      '$1$2'
+    )
+}
+
+/**
  * Russian Cyrillic → Latin transliteration map for `slugify`. Media
  * labels exist per locale; without this step a Cyrillic-only caption
  * (e.g. "фон бренда") would slugify to '' — the deep link would never
