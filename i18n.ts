@@ -83,8 +83,6 @@ export interface LangSlugMap {
   earthPlayground: string
   /** Star-field experiment segment. */
   starField: string
-  /** Axiom's End experiment segment. */
-  axiomsEnd: string
   /** Animations-reference segment. */
   animations: string
   /** Sitemap page segment. */
