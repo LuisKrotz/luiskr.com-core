@@ -8,7 +8,7 @@
  * registration failure, and the online/offline window relays.
  */
 import { describe, test, expect, jest, afterEach } from '@jest/globals'
-import { SW_EVENTS, SW_STRINGS } from '@core/tokens/events/dom.js'
+import { CLIPBOARD_EVENTS, SW_EVENTS, SW_STRINGS } from '@core/tokens/events/dom.js'
 import { registerSiteServiceWorker, dropStaleServiceWorkers } from '@core/utils/service-worker.js'
 
 /** Stashed property descriptors restored after each test. */
@@ -247,6 +247,40 @@ describe('registerSiteServiceWorker', () => {
     await Promise.resolve()
 
     expect(hooks.error).toHaveBeenCalled()
+  })
+
+  test('wires controllerchange + polls update() on visibility return', async () => {
+    const registration = makeRegistration()
+    const swListeners = {}
+    const sw = {
+      ready: Promise.resolve(registration),
+      register: jest.fn(async () => registration),
+      addEventListener: (type, cb) => {
+        swListeners[type] = cb
+      },
+    }
+    const hooks = { controllerchange: jest.fn() }
+
+    registration.update = jest.fn(async () => {})
+
+    stubSw(sw)
+    await registerSiteServiceWorker('/sw.js', hooks)
+
+    // The container relays the claimed swap to the hook with the live registration.
+    swListeners[SW_EVENTS.CONTROLLER_CHANGE]?.()
+    expect(hooks.controllerchange).toHaveBeenCalledWith(registration)
+
+    // Returning to a visible tab re-checks for an update immediately —
+    // the stale-tab skew window shrinks to the visibility round-trip.
+    saveKey('hidden', document)
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true })
+    document.dispatchEvent(new window.Event(CLIPBOARD_EVENTS.VISIBILITY_CHANGE))
+    expect(registration.update).toHaveBeenCalledTimes(1)
+
+    // Hidden tabs stay quiet — no poll while the page is parked.
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true })
+    document.dispatchEvent(new window.Event(CLIPBOARD_EVENTS.VISIBILITY_CHANGE))
+    expect(registration.update).toHaveBeenCalledTimes(1)
   })
 })
 

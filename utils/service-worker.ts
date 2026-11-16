@@ -12,7 +12,7 @@
  */
 
 import { TYPE_STRINGS } from '@core/tokens/strings/types.js'
-import { SW_EVENTS, SW_STRINGS } from '@core/tokens/events/dom.js'
+import { CLIPBOARD_EVENTS, SW_EVENTS, SW_STRINGS, SW_TIMING } from '@core/tokens/events/dom.js'
 
 /**
  * Lifecycle hooks for `registerSiteServiceWorker` — local replacement
@@ -30,6 +30,9 @@ export interface ServiceWorkerHooks {
   updatefound?: (registration: ServiceWorkerRegistration) => void
   /** A new SW version installed — fresh content is ready. */
   updated?: (registration: ServiceWorkerRegistration) => void
+  /** The new worker claimed this client — the only moment old page +
+   * new precache are guaranteed consistent (safe reload point). */
+  controllerchange?: (registration: ServiceWorkerRegistration) => void
   /** Window went offline. */
   offline?: () => void
   /** Window came back online. */
@@ -156,6 +159,28 @@ export async function registerSiteServiceWorker(
 
     emit(hooks, 'registered', registration)
     trackInstalling(hooks, registration)
+
+    // An open tab across a deploy holds the OLD module graph while the
+    // new build's renamed chunks replace the precache — lazy imports
+    // then resolve missing symbols ("x is not defined" sessions in the
+    // error feed). The browser's automatic update check runs ~daily, so
+    // a long-lived tab stays skewed for hours. Poll update() on a
+    // cadence + every visibility return so the new worker is found in
+    // seconds; controllerchange then reports the claimed swap — the one
+    // moment old page + new precache are guaranteed consistent.
+    const poll = (): void => {
+      void registration.update?.()?.catch(() => {})
+    }
+
+    setInterval(poll, SW_TIMING.UPDATE_CHECK_MS)
+
+    document.addEventListener(CLIPBOARD_EVENTS.VISIBILITY_CHANGE, () => {
+      if (!document.hidden) poll()
+    })
+
+    sw.addEventListener?.(SW_EVENTS.CONTROLLER_CHANGE, () =>
+      emit(hooks, 'controllerchange', registration)
+    )
   } catch (error) {
     emit(hooks, 'error', error)
   }

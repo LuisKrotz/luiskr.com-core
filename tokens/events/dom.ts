@@ -196,8 +196,17 @@ export const PRINT_EVENTS = Object.freeze({
 export const SW_EVENTS = Object.freeze({
   UPDATE_FOUND: 'updatefound',
   STATE_CHANGE: 'statechange',
+  CONTROLLER_CHANGE: 'controllerchange',
   ONLINE: 'online',
   OFFLINE: 'offline',
+})
+
+/** ServiceWorker update-check cadence — how often a live page asks the
+ * browser to look for a new worker so an open tab cannot sit on a stale
+ * module graph across a deploy (the renamed-chunk "x is not defined"
+ * sessions in the error feed). */
+export const SW_TIMING = Object.freeze({
+  UPDATE_CHECK_MS: 300000,
 })
 
 /** ServiceWorker state strings + registration plumbing constants. */

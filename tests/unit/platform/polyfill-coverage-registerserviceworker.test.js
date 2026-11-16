@@ -104,6 +104,32 @@ describe('registerServiceWorker', () => {
     }
   })
 
+  test('controllerchange reloads only after an update armed it', async () => {
+    const { registerServiceWorker } = await import('@/registerServiceWorker.js')
+
+    registerServiceWorker({ PROD: true, BASE_URL: '/' })
+    window.dispatchEvent(new window.Event(WINDOW_EVENTS.LOAD))
+
+    const hooks = registerMock.mock.calls.at(-1)[1]
+    const reload = jest.fn()
+
+    _saveKey('reload', window.location)
+    Object.defineProperty(window.location, 'reload', { value: reload, configurable: true })
+
+    // Disarmed claim — first-install precache fill must never bounce.
+    hooks.controllerchange()
+    expect(reload).not.toHaveBeenCalled()
+
+    // Update install arms the gate; the claimed swap reloads once.
+    hooks.updated()
+    hooks.controllerchange()
+    expect(reload).toHaveBeenCalledTimes(1)
+
+    // A second claim lands disarmed — no reload loop.
+    hooks.controllerchange()
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
   test('does nothing outside production', async () => {
     const { registerServiceWorker } = await import('@/registerServiceWorker.js')
 
