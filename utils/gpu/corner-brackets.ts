@@ -320,7 +320,17 @@ export function mountCornerBrackets(button: HTMLElement, spec: CornerBracketSpec
       handle.widget.frame(0)
 
       if (typeof ResizeObserver !== TYPE_STRINGS.UNDEFINED) {
-        ro = new ResizeObserver(() => layout())
+        let raf = 0
+
+        ro = new ResizeObserver(() => {
+          if (raf) return
+
+          raf = requestAnimationFrame(() => {
+            raf = 0
+
+            layout()
+          })
+        })
 
         ro.observe(button)
       }

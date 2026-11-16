@@ -54,18 +54,27 @@ function applyBackingStore(host: ThemeSliderWebGL): void {
 function observeResize(host: ThemeSliderWebGL): void {
   if (typeof ResizeObserver === TYPE_STRINGS.UNDEFINED) return
 
+  // Same RO-loop guard as close-button — backing-store writes deferred to rAF.
+  let raf = 0
+
   host._resizeObserver = new ResizeObserver((entries) => {
-    for (const entry of entries) {
-      const w = entry.contentRect.width
+    if (raf) return
 
-      if (w > 50 && Math.abs(w - host.width) > 2) {
-        host.width = w
+    raf = requestAnimationFrame(() => {
+      raf = 0
 
-        applyBackingStore(host)
+      for (const entry of entries) {
+        const w = entry.contentRect.width
 
-        host.knobX = host._pToKnobX(host.currentP)
+        if (w > 50 && Math.abs(w - host.width) > 2) {
+          host.width = w
+
+          applyBackingStore(host)
+
+          host.knobX = host._pToKnobX(host.currentP)
+        }
       }
-    }
+    })
   })
 
   host._resizeObserver.observe(host.canvas)

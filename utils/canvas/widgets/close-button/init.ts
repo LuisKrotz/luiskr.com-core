@@ -55,27 +55,37 @@ function applyBackingStore(host: CloseButtonWebGL): void {
 function observeResize(host: CloseButtonWebGL): void {
   if (typeof ResizeObserver === TYPE_STRINGS.UNDEFINED) return
 
+  // Backing-store writes inside the notification turn can re-fire the
+  // observer same-frame — coalesce through rAF (WebKit RO-loop guard).
+  let raf = 0
+
   host._ro = new ResizeObserver((entries) => {
-    for (const entry of entries) {
-      const w = entry.contentRect.width
+    if (raf) return
 
-      const h = entry.contentRect.height
+    raf = requestAnimationFrame(() => {
+      raf = 0
 
-      if (
-        w > MIN_MEASURED &&
-        (Math.abs(w - host.width) > RESIZE_EPS || Math.abs(h - host.height) > RESIZE_EPS)
-      ) {
-        host.width = w
+      for (const entry of entries) {
+        const w = entry.contentRect.width
 
-        host.height = h || w
+        const h = entry.contentRect.height
 
-        applyBackingStore(host)
+        if (
+          w > MIN_MEASURED &&
+          (Math.abs(w - host.width) > RESIZE_EPS || Math.abs(h - host.height) > RESIZE_EPS)
+        ) {
+          host.width = w
 
-        if (host.gl) {
-          host.gl.viewport(0, 0, host.canvas.width, host.canvas.height)
+          host.height = h || w
+
+          applyBackingStore(host)
+
+          if (host.gl) {
+            host.gl.viewport(0, 0, host.canvas.width, host.canvas.height)
+          }
         }
       }
-    }
+    })
   })
 
   if (host.canvas.parentElement) {

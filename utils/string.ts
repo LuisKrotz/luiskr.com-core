@@ -206,10 +206,15 @@ export const slugify = (text: string): string => {
 export const splitDrawSentences = (text: string): string[] => {
   if (!text) return []
 
-  return text
-    .split(/(?<=[.!?…])\s+/u)
-    .map((s) => s.trim())
-    .filter(Boolean)
+  // Split on (punct)(whitespace) with the punct captured — re-appending it
+  // keeps each delimiter on its own run exactly like a lookbehind split,
+  // but parses on every WebKit vintage (lookbehind is Safari 16.4+).
+  const parts = text.split(/([.!?…])\s+/u)
+  const runs: string[] = []
+
+  for (let i = 0; i < parts.length; i += 2) runs.push(parts[i] + (parts[i + 1] ?? ''))
+
+  return runs.map((s) => s.trim()).filter(Boolean)
 }
 
 /**

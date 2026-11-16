@@ -45,7 +45,20 @@ export function start(host: MenuBackgroundWebGL): void {
   host._handleResize()
 
   if (typeof ResizeObserver !== TYPE_STRINGS.UNDEFINED) {
-    host._ro = new ResizeObserver(() => host._handleResize())
+    // Defer the resize write to rAF — a canvas resize inside the
+    // notification turn re-fires the observer on the same frame
+    // (WebKit "ResizeObserver loop completed" error).
+    let raf = 0
+
+    host._ro = new ResizeObserver(() => {
+      if (raf) return
+
+      raf = requestAnimationFrame(() => {
+        raf = 0
+
+        host._handleResize()
+      })
+    })
 
     host._ro.observe(host.canvas.parentElement || host.canvas)
   }

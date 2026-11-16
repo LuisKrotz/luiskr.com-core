@@ -53,7 +53,20 @@ export function watchOrphanSeps(nav: Element, pairCls: string, leadCls: string):
 
   sync()
 
-  const ro = new ResizeObserver(sync)
+  // Class toggles inside the callback rewrap the nav the observer watches —
+  // defer to rAF so a write never lands inside the notification turn that
+  // measured it (WebKit's "ResizeObserver loop" error).
+  let raf = 0
+
+  const ro = new ResizeObserver(() => {
+    if (raf) return
+
+    raf = requestAnimationFrame(() => {
+      raf = 0
+
+      sync()
+    })
+  })
 
   ro.observe(nav)
 

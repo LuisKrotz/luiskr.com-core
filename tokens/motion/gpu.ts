@@ -13,7 +13,7 @@
  */
 export const GPU_PATTERNS = Object.freeze({
   /** Desktop discrete GPUs (NVIDIA / AMD / Intel Arc) */
-  DEDICATED: /nvidia|geforce|quadro|rtx|gtx|radeon|(?<!v)amd|arc a\d/i,
+  DEDICATED: /nvidia|geforce|quadro|rtx|gtx|radeon|(?:^|[^v])amd|arc a\d/i,
   /** Apple Silicon — unified memory but performant; safe to treat as capable */
   APPLE: /apple/i,
   /** Integrated/mobile GPUs where the discrete hint is meaningless */

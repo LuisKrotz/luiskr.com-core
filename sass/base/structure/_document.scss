@@ -40,6 +40,10 @@ html {
 body {
   width: 100%;
   min-height: 100vh;
+  // svh pins the document floor to the smallest (bars-shown) viewport —
+  // a 100vh floor re-fires on every mobile URL-bar collapse/expand and
+  // reflows the whole document (reads as the page "breathing" on swipe).
+  min-height: 100svh;
   margin: 0;
   padding: 0;
   // An unbreakable title word (long compound locales) must never push the
@@ -159,6 +163,8 @@ body {
   background: transparent;
   width: 100%;
   min-height: 100vh;
+  // Same stable-floor rule as body — see the svh note above.
+  min-height: 100svh;
 
   // Third field layer — the counter-drifting colour veil (--bg-glow-3).
   // body's two pseudo-elements are already spent on the wash layers, so
@@ -322,6 +328,8 @@ main {
 
 #main {
   min-height: 100vh;
+  // Same stable-floor rule as body — see the svh note above.
+  min-height: 100svh;
 }
 
 // Section markers the nav's scroll tracker measures (#about/#contact offsets).
