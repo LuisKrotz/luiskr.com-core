@@ -45,6 +45,16 @@
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
+  // Dynamic viewport units bounce as mobile chrome collapses/expands on
+  // scroll and swipe — each bar step re-flows the grid and re-arms the
+  // measurement feedback loop, which reads as the page shaking mid-
+  // gesture. svh pins the section to the smallest (bars-shown) viewport
+  // so bar animation stops moving layout; the collapsed-bar surplus
+  // simply extends below the fold. It also keeps the foot controls
+  // inside the visible + touchable band instead of under the URL bar.
+  @media (max-width: 1023px) {
+    min-height: 100svh;
+  }
   box-sizing: border-box;
   padding-top: var(--space-3xl);
   // The foot controls lift clear of the OS bottom-gesture area — space-2xl

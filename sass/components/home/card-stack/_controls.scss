@@ -16,6 +16,12 @@
   &-foot {
     grid-row: 3;
     grid-column: 1 / -1;
+    position: relative;
+    // Dealt-out cards overflow the deck's box on the stacked tiers and
+    // can paint over this row — stacking the foot above the pile (the
+    // header's level) keeps the nav cluster + hint tappable through
+    // the overlap instead of taps landing on the stretched card link.
+    z-index: 5;
     display: grid;
     grid-template-columns: 1fr;
     justify-items: center;
