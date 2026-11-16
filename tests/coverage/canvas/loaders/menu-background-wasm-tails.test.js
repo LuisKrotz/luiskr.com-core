@@ -302,8 +302,11 @@ describe('menu-background wasm path', () => {
 
     // RO callback → _handleResize → wasm size push.
     const before = fakeWidget.calls.size.length
+    const prevRaf = globalThis.requestAnimationFrame
 
+    globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
     ros[0].cb()
+    globalThis.requestAnimationFrame = prevRaf
 
     expect(fakeWidget.calls.size.length).toBeGreaterThan(before)
 

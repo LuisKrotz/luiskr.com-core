@@ -257,6 +257,9 @@ describe('theme-slider init tail', () => {
     await Promise.resolve()
     await new Promise((r) => setTimeout(r, 10))
 
+    const prevRaf = globalThis.requestAnimationFrame
+
+    globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
     capturedRoCb([{ contentRect: { width: 400 } }])
 
     expect(host.width).toBe(400)
@@ -268,6 +271,7 @@ describe('theme-slider init tail', () => {
     expect(host.width).toBe(400)
 
     capturedRoCb([{ contentRect: { width: 20 } }])
+    globalThis.requestAnimationFrame = prevRaf
 
     expect(host.width).toBe(400)
   })

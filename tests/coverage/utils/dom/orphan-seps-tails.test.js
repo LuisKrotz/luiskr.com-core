@@ -77,7 +77,11 @@ describe('orphan-seps watcher', () => {
       p.getBoundingClientRect = () => ({ top: reTops[i] })
     })
 
+    const prevRaf = globalThis.requestAnimationFrame
+
+    globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
     capturedRoCb()
+    globalThis.requestAnimationFrame = prevRaf
 
     expect(pairs[1].classList.contains('lead')).toBe(true)
     expect(pairs[2].classList.contains('lead')).toBe(false)

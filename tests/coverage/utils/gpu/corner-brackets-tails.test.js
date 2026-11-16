@@ -283,10 +283,13 @@ describe('corner-brackets', () => {
 
       // A zero devicePixelRatio resolves through the `|| 1` fallback.
       const prevDpr = window.devicePixelRatio
+      const prevRaf = globalThis.requestAnimationFrame
 
+      globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
       Object.defineProperty(window, 'devicePixelRatio', { value: 0, configurable: true })
       ros[0].cb()
       Object.defineProperty(window, 'devicePixelRatio', { value: prevDpr, configurable: true })
+      globalThis.requestAnimationFrame = prevRaf
 
       expect(widget.resizes.length).toBe(2)
       expect(widget.arms.length).toBe(2)
@@ -295,7 +298,9 @@ describe('corner-brackets', () => {
       const td = teardowns.pop()
 
       td()
+      globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
       ros[0].cb()
+      globalThis.requestAnimationFrame = prevRaf
 
       expect(widget.resizes.length).toBe(2)
     })

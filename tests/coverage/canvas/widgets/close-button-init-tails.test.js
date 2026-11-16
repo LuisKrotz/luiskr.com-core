@@ -176,6 +176,10 @@ describe('close-button init tail', () => {
     expect(host._ro.observe).toHaveBeenCalledWith(host.canvas.parentElement)
 
     host.gl = { viewport: jest.fn() }
+
+    const prevRaf = globalThis.requestAnimationFrame
+
+    globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
     capturedRoCb([{ contentRect: { width: 80, height: 0 } }])
 
     expect(host.width).toBe(80)
@@ -184,6 +188,7 @@ describe('close-button init tail', () => {
 
     capturedRoCb([{ contentRect: { width: 81, height: 80 } }]) // under RESIZE_EPS → ignored
     capturedRoCb([{ contentRect: { width: 4, height: 4 } }]) // under MIN_MEASURED → ignored
+    globalThis.requestAnimationFrame = prevRaf
 
     expect(host.width).toBe(80)
 
@@ -240,7 +245,11 @@ describe('close-button init tail', () => {
 
     expect(host._wasm).not.toBeNull()
 
+    const prevRaf = globalThis.requestAnimationFrame
+
+    globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
     capturedRoCb([{ contentRect: { width: 90, height: 90 } }])
+    globalThis.requestAnimationFrame = prevRaf
 
     expect(widget.set_size).toHaveBeenLastCalledWith(90, 90)
     expect(widget.resize).toHaveBeenCalled()
