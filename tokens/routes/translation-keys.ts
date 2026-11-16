@@ -30,7 +30,6 @@ export const TRANSLATION_KEYS = Object.freeze({
   ABOUT: _B_ABOUT,
   EARTH_PLAYGROUND: 'earth-playground',
   STAR_FIELD: 'star-field',
-  AXIOMS_END: 'axioms-end',
   DOCS: _B_DOCS,
   ANIMATIONS: _K_ANIMATIONS,
   SEARCH: 'search',

@@ -34,8 +34,6 @@ export const ROUTE_PATHS = Object.freeze({
   SPACE_PLAYGROUND_SEGMENT: 'space-playground',
   STAR_FIELD: '/star-field-experiment',
   STAR_FIELD_SEGMENT: 'star-field-experiment',
-  AXIOMS_END: '/axioms-end',
-  AXIOMS_END_SEGMENT: 'axioms-end',
   DOCS: `/${_B_DOCS}`,
   DOCS_SEGMENT: _B_DOCS,
   ANIMATIONS_SEGMENT: _K_ANIMATIONS,

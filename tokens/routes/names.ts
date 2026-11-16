@@ -22,7 +22,6 @@ export const ROUTE_NAMES = Object.freeze({
   CMS_DASHBOARD: 'CMS Dashboard',
   EARTH_PLAYGROUND: 'Earth Playground',
   STAR_FIELD: 'Star Field',
-  AXIOMS_END: "Axiom's End",
   DOCS: 'In-depth project docs',
   ANIMATIONS: 'Animations Reference',
   SEARCH: 'Search',

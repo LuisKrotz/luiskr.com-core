@@ -42,16 +42,6 @@ const _STAR_SLUGS = new Set(
 )
 
 /**
- * Same slug set for the Axiom's End experiment — the Gothic action-RPG
- * surface is dark-only like the other playgrounds.
- */
-const _AXIOMS_SLUGS = new Set(
-  Object.values(LANG_SLUGS)
-    .map((s) => s.axiomsEnd)
-    .filter(Boolean)
-)
-
-/**
  * Last non-empty URL path segment — shared by the playground checks.
  * @param pathname Raw location pathname (a pre-extracted bare segment
  *  also works — it contains no `/` to split on).
@@ -109,21 +99,6 @@ export function isStarFieldRoute(routeName?: string | null, pathname?: string): 
 }
 
 /**
- * True on the Axiom's End experiment route — same resolution order as
- * {@link isEarthPlaygroundRoute}.
- * @param routeName Resolved route descriptor name, when the caller has one.
- * @param pathname Path to check; defaults to the live `location.pathname`.
- * @returns Whether the route is the Axiom's End experiment.
- */
-export function isAxiomsEndRoute(routeName?: string | null, pathname?: string): boolean {
-  if (routeName === ROUTE_NAMES.AXIOMS_END) return true
-
-  const last = lastPathSegment(pathname ?? livePath())
-
-  return last === ROUTE_PATHS.AXIOMS_END_SEGMENT || _AXIOMS_SLUGS.has(last)
-}
-
-/**
  * True on either playground-experiment route — the "force dark, no theme
  * switching" surface test the theme resolver and preferences dialog use.
  * @param routeName Resolved route descriptor name, when the caller has one.
@@ -131,9 +106,5 @@ export function isAxiomsEndRoute(routeName?: string | null, pathname?: string): 
  * @returns Whether the route is a playground experiment.
  */
 export function isPlaygroundRoute(routeName?: string | null, pathname?: string): boolean {
-  return (
-    isEarthPlaygroundRoute(routeName, pathname) ||
-    isStarFieldRoute(routeName, pathname) ||
-    isAxiomsEndRoute(routeName, pathname)
-  )
+  return isEarthPlaygroundRoute(routeName, pathname) || isStarFieldRoute(routeName, pathname)
 }
