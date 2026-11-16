@@ -79,7 +79,7 @@ describe('orphan-seps watcher', () => {
 
     const prevRaf = globalThis.requestAnimationFrame
 
-    globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
+    globalThis.requestAnimationFrame = (cb) => (cb(0), 0)
     capturedRoCb()
     globalThis.requestAnimationFrame = prevRaf
 

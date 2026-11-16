@@ -179,7 +179,7 @@ describe('close-button init tail', () => {
 
     const prevRaf = globalThis.requestAnimationFrame
 
-    globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
+    globalThis.requestAnimationFrame = (cb) => (cb(0), 0)
     capturedRoCb([{ contentRect: { width: 80, height: 0 } }])
 
     expect(host.width).toBe(80)
@@ -247,7 +247,7 @@ describe('close-button init tail', () => {
 
     const prevRaf = globalThis.requestAnimationFrame
 
-    globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
+    globalThis.requestAnimationFrame = (cb) => (cb(0), 0)
     capturedRoCb([{ contentRect: { width: 90, height: 90 } }])
     globalThis.requestAnimationFrame = prevRaf
 

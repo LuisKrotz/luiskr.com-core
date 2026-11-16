@@ -259,7 +259,7 @@ describe('theme-slider init tail', () => {
 
     const prevRaf = globalThis.requestAnimationFrame
 
-    globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
+    globalThis.requestAnimationFrame = (cb) => (cb(0), 0)
     capturedRoCb([{ contentRect: { width: 400 } }])
 
     expect(host.width).toBe(400)

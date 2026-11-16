@@ -285,7 +285,7 @@ describe('corner-brackets', () => {
       const prevDpr = window.devicePixelRatio
       const prevRaf = globalThis.requestAnimationFrame
 
-      globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
+      globalThis.requestAnimationFrame = (cb) => (cb(0), 0)
       Object.defineProperty(window, 'devicePixelRatio', { value: 0, configurable: true })
       ros[0].cb()
       Object.defineProperty(window, 'devicePixelRatio', { value: prevDpr, configurable: true })
@@ -298,7 +298,7 @@ describe('corner-brackets', () => {
       const td = teardowns.pop()
 
       td()
-      globalThis.requestAnimationFrame = (cb) => (cb(0), 1)
+      globalThis.requestAnimationFrame = (cb) => (cb(0), 0)
       ros[0].cb()
       globalThis.requestAnimationFrame = prevRaf
 
