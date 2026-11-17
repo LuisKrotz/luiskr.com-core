@@ -2,7 +2,6 @@
  * @file tokens/data/search-themes.js
  * @description Shared CMS field key for localized search vocabulary.
  */
-/* istanbul ignore file */
 
 /**
  * Field name used to store localized search terms on page and project nodes.

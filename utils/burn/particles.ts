@@ -25,6 +25,7 @@ import {
   _P_MAX,
   _SPAWN_PER_S,
 } from './tuning.js'
+import { BURN_PARTICLE } from './types.js'
 import type { BurnSession } from './types.js'
 
 /**
@@ -92,7 +93,7 @@ export function spawn(s: BurnSession, progress: number, jagAmp: number, dt: numb
       life: 0,
       maxLife,
       size: fleck ? 1 + Math.random() * _FLECK_SIZE : 0.8 + Math.random() * _EMBER_SIZE,
-      kind: fleck ? 1 : 0,
+      kind: fleck ? BURN_PARTICLE.FLECK : BURN_PARTICLE.EMBER,
       rot: Math.random() * Math.PI * 2,
       spin: (Math.random() * 2 - 1) * 6,
       phase: Math.random() * Math.PI * 2,
@@ -129,7 +130,7 @@ export function drawParticles(s: BurnSession, dt: number, stage: number, jagAmp:
 
     const k = p.life / p.maxLife
 
-    if (p.kind === 0) {
+    if (p.kind === BURN_PARTICLE.EMBER) {
       // Ember — burn: buoyancy lifts it; rebuild: gravity pulls the
       // deposit down toward the front it landed from.
       p.vy += (rebuild ? _FLECK_G : -8) * dt

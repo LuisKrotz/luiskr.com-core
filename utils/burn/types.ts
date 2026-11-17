@@ -4,7 +4,30 @@
  * pipeline modules all operate on one `BurnSession` record instead of
  * loose arguments, so the types live in their own module.
  */
-/* istanbul ignore file */
+
+/**
+ * Particle kind ids — the two particle species the pipeline emits
+ * (`BurnParticle.kind`). Sole declaration site — spawn/read sites use
+ * the tokens, never the raw 0/1 literals.
+ */
+export const BURN_PARTICLE = Object.freeze({
+  /** Bright ember — rises and dies. */
+  EMBER: 0,
+  /** Dark char fleck — curls with rotation and tumble. */
+  FLECK: 1,
+})
+
+/**
+ * Burn direction ids (`BurnSession.dir`) — signed so comparisons can
+ * stay sign checks; the tokens name the two states the session moves
+ * between.
+ */
+export const BURN_DIR = Object.freeze({
+  /** Combusts forward — the front consumes the title glyphs. */
+  FORWARD: 1,
+  /** Un-burns back to whole text — the knit deposits glyphs. */
+  REBUILD: -1,
+})
 
 /**
  * The class-name contract a host component hands the burn pipeline —

@@ -4,6 +4,7 @@
  * BurnSession record, do the first layout + raster, and hand the loop
  * its first frame. Split from the monolithic burn.ts.
  */
+import { BURN_DIR } from './types.js'
 import type { BurnClasses, BurnItem } from './types.js'
 import { WEBGL_STRINGS } from '@core/tokens/strings/webgl.js'
 import { HTML_TAGS } from '@core/tokens/elements/html.js'
@@ -125,7 +126,7 @@ export function mountBurn(
     paperH: 2,
     t: 0,
     prog: 0,
-    dir: 1,
+    dir: BURN_DIR.FORWARD,
     onBurned,
     cardEl,
     dur:

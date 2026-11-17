@@ -10,6 +10,7 @@ import { burnPaper } from './paper-fx.js'
 import { drawParticles, spawn } from './particles.js'
 import { destroyBurnWasm, frameBurnWasm, liveBurnParticles, setBurnDirWasm } from './wasm.js'
 import { _BURN_END, _JAG_RATIO, _REBUILD_RATIO } from './tuning.js'
+import { BURN_DIR } from './types.js'
 import type { BurnCard, BurnSession } from './types.js'
 
 /**
@@ -93,7 +94,7 @@ export function frame(s: BurnSession): void {
       if (s.cls.ITEM_BURNED) {
         s.cardEl.classList.add(s.cls.ITEM_BURNED)
 
-        s.dir = -1
+        s.dir = BURN_DIR.REBUILD
         s.prog = 1
       }
 

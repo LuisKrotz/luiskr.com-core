@@ -54,6 +54,7 @@ import store from '@core/store.js'
 import { frame } from './loop.js'
 import { insertTitleSlot, mountBurn } from './mount.js'
 import { setBurnDirWasm } from './wasm.js'
+import { BURN_DIR } from './types.js'
 import type { BurnCard, BurnClasses, BurnHost, BurnItem } from './types.js'
 
 export type { BurnCard, BurnClasses, BurnHost, BurnItem, BurnSession } from './types.js'
@@ -130,7 +131,7 @@ export function armCardBurn(
     // instead of restarting the burn from scratch.
     const s = card._burn
 
-    s.dir = 1
+    s.dir = BURN_DIR.FORWARD
     s.t = s.prog * (s.dur / 1000)
 
     // The crate's set_dir restarts the particle stream on a flip.
@@ -168,7 +169,7 @@ export function disarmCardBurn(host: BurnHost, i: number, cls: BurnClasses, card
     // the front snaps back to fully-consumed and re-knits from scratch.
     if (s.dir > 0) s.prog = Math.min(1, s.t / (s.dur / 1000))
 
-    s.dir = -1
+    s.dir = BURN_DIR.REBUILD
 
     // The crate's set_dir restarts the particle stream on a flip.
     setBurnDirWasm(s)
