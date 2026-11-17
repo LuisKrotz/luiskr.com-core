@@ -28,6 +28,13 @@ type BootLoader = Record<string, () => Promise<{ default: unknown }>>
 // Resolved-read promise map — repeated reads of a node share one resolution.
 const _dbCache = new Map<string, Promise<DbSnapshot>>()
 
+// Per-path divergence subscribers — EVERY caller's onUpdate registers,
+// cache-hit callers included. A remounted reader whose first mount primed
+// the cache must still converge on live data; keeping one callback slot
+// per path would silently drop the live mount's re-render and pin stale
+// snapshot data on screen.
+const _dbSubs = new Map<string, Set<(_snapshot: DbSnapshot) => void>>()
+
 // Per-locale snapshot-chunk promises (core / projects), so each lazy chunk
 // is imported at most once.
 const _bootChunks = new Map<string, Promise<unknown>>()
@@ -167,16 +174,26 @@ const _fetchNetwork = async (cleanPath: string): Promise<unknown> => {
  *
  * Static first: translation paths resolve instantly from the build-time
  * snapshot of database.json, then revalidate against Firebase in the
- * background. When the live value differs, the cache is updated and
- * `onUpdate(snapshot)` is called so the caller can re-render with CMS edits
- * made after the last deploy. Non-translation paths go straight to the
- * network with the localStorage copy as offline fallback.
+ * background. When the live value differs, the cache is updated and every
+ * registered `onUpdate` fires — each caller that passed one gets the
+ * callback, including callers that hit an already-cached promise, so a
+ * remounted reader still re-renders with CMS edits made after the last
+ * deploy. Non-translation paths go straight to the network with the
+ * localStorage copy as offline fallback.
  */
 export const fetchFirebaseDb = async (
   path: string,
   onUpdate?: (_snapshot: DbSnapshot) => void
 ): Promise<DbSnapshot> => {
   const cleanPath = path.startsWith(CHAR_STRINGS.SLASH) ? path.slice(1) : path
+
+  if (onUpdate) {
+    const subs = _dbSubs.get(cleanPath) || new Set()
+
+    subs.add(onUpdate)
+
+    _dbSubs.set(cleanPath, subs)
+  }
 
   const hit = _dbCache.get(cleanPath)
 
@@ -204,7 +221,14 @@ export const fetchFirebaseDb = async (
 
           _dbCache.set(cleanPath, Promise.resolve(fresh))
 
-          onUpdate?.(fresh)
+          _dbSubs.get(cleanPath)?.forEach((cb) => {
+            try {
+              cb(fresh)
+            } catch {
+              // One subscriber's throw must not starve the rest — the
+              // fetch's own catch already swallows this arm's errors.
+            }
+          })
         })
         .catch(() => {})
 
