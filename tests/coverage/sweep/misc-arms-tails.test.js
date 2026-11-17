@@ -19,6 +19,10 @@ import {
   generateEarthPlaygroundSchema,
   generateStarIndexSchema,
 } from '@core/utils/schema.js'
+import { INDEXNOW } from '@core/tokens/indexnow.js'
+import { DOCS_CLASSES } from '@core/tokens/classes/docs.js'
+import { DOCS_IDS } from '@core/tokens/ids/docs.js'
+import { DOCS_SELECTORS } from '@core/tokens/selectors/docs.js'
 
 describe('store mutations — non-boolean toggle arm', () => {
   test('toggleSearchModal without a payload flips the flag', () => {
@@ -141,5 +145,15 @@ describe('schema arms', () => {
     })
 
     expect(out).toBeTruthy()
+  })
+})
+
+describe('leaf token modules — import-side-effect coverage', () => {
+  test('indexnow + docs token maps evaluate their frozen declarations', () => {
+    expect(INDEXNOW.HOST).toBeTruthy()
+    expect(INDEXNOW.KEY).toBeTruthy()
+    expect(DOCS_CLASSES.DOCS).toBeTruthy()
+    expect(DOCS_IDS).toBeTruthy()
+    expect(DOCS_SELECTORS).toBeTruthy()
   })
 })

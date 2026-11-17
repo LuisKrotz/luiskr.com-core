@@ -53,6 +53,23 @@ describe('gpu-accel tails', () => {
     gpuAccel.gl = gl
   })
 
+  test('_uploadTextureAndDraw no-ops on a torn-down or never-initialized accelerator', () => {
+    const savedCanvas = gpuAccel.canvas
+    const savedGl = gpuAccel.gl
+
+    // Null canvas — the guard returns before touching gl state.
+    gpuAccel.canvas = null
+    expect(() => gpuAccel._uploadTextureAndDraw?.(null, 8, 8)).not.toThrow()
+
+    // Canvas present but GL torn down — same early return.
+    gpuAccel.canvas = document.createElement(HTML_TAGS.CANVAS)
+    gpuAccel.gl = null
+    expect(() => gpuAccel._uploadTextureAndDraw?.(null, 8, 8)).not.toThrow()
+
+    gpuAccel.canvas = savedCanvas
+    gpuAccel.gl = savedGl
+  })
+
   test('initGPU is a no-op without window and skips GL on mobile', () => {
     const savedWin = globalThis.window
     const savedGl = gpuAccel.gl

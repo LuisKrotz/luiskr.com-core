@@ -282,6 +282,26 @@ describe('registerSiteServiceWorker', () => {
     document.dispatchEvent(new window.Event(CLIPBOARD_EVENTS.VISIBILITY_CHANGE))
     expect(registration.update).toHaveBeenCalledTimes(1)
   })
+
+  test('a rejected update() poll is swallowed — never a boot-path throw', async () => {
+    const registration = makeRegistration()
+    const sw = {
+      ready: Promise.resolve(registration),
+      register: jest.fn(async () => registration),
+      addEventListener: () => {},
+    }
+
+    registration.update = jest.fn(() => Promise.reject(new Error('quota')))
+
+    stubSw(sw)
+    await registerSiteServiceWorker('/sw.js', {})
+
+    saveKey('hidden', document)
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true })
+    document.dispatchEvent(new window.Event(CLIPBOARD_EVENTS.VISIBILITY_CHANGE))
+    expect(registration.update).toHaveBeenCalledTimes(1)
+    await Promise.resolve()
+  })
 })
 
 describe('dropStaleServiceWorkers', () => {
