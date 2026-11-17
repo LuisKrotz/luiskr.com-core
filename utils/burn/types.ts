@@ -4,6 +4,7 @@
  * pipeline modules all operate on one `BurnSession` record instead of
  * loose arguments, so the types live in their own module.
  */
+/* istanbul ignore file */
 
 /**
  * The class-name contract a host component hands the burn pipeline —

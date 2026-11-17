@@ -5,4 +5,5 @@
  * remap `.js` specifiers to `.ts` files, so build scripts (.mjs) loading those
  * modules fail. Re-exports the authoritative bindings from `base.ts`.
  */
+/* istanbul ignore file */
 export * from './base.ts'

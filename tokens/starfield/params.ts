@@ -10,6 +10,7 @@
  * spiral/worker/catalog/scene); this module re-exports them all so
  * existing `@core/tokens/starfield/params.js` imports stay stable.
  */
+/* istanbul ignore file */
 
 export { SF_CAMERA, SF_MOTION, SF_APPROACH, SF_ZOOM, SF_KEYS, SF_TIP } from './params/camera.js'
 export { SF_SCALE, SF_STRUCTURE } from './params/scale.js'

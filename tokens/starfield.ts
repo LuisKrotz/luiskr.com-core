@@ -4,6 +4,7 @@
  * the lazy-data path prefix. Decomposed into per-subsystem group objects
  * under `tokens/starfield/`; import a group directly for tree-shaking.
  */
+/* istanbul ignore file */
 
 export * from './starfield/textures.js'
 export * from './starfield/kinds.js'
