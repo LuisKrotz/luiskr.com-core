@@ -57,6 +57,18 @@
       }
     }
 
+    // Mount pending — the deck stays invisible until the first measured
+    // pose pass has landed (the ResizeObserver's initial delivery, or
+    // the RO-less fallback timer). Opacity gates the whole subtree as
+    // one composite: per-card inline `visibility: visible` writes would
+    // punch straight through a parent's `visibility: hidden`, while a
+    // zero-opacity group never can. No transition on the reveal itself
+    // — the settled pile appears complete, nothing fades or slides in.
+    &--pending {
+      opacity: 0;
+      pointer-events: none;
+    }
+
     // Floor pool — the shared contact shadow the lit fan throws onto
     // the stage (the reference's soft dark pool under the display): a
     // wide low ellipse hugging the card band's bottom edge, darker
@@ -94,6 +106,13 @@
     position: absolute;
     left: 50%;
     top: 50%;
+    // Unposed baseline — the same deck-centre anchor the JS pose writes
+    // always lead with, so any paint that ever precedes applyPoses shows
+    // a centred pile instead of cards parked top-left-corner-on-centre
+    // (the "distorted image on origin" first frame). The inline pose
+    // overrides this whole value; the mount-path transition suppression
+    // keeps it from animating the difference.
+    transform: translate(-50%, -50%);
     box-sizing: border-box;
     padding: 0;
     border-radius: var(--radius-lg);

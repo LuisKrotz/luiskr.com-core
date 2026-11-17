@@ -444,6 +444,13 @@ export const CARD_STACK_LAYOUT = Object.freeze({
    *  (the write→notify cycle browsers report as undelivered
    *  notifications). */
   FIT_SETTLE_MS: 120,
+  /** RO-less settle fallback (ms) — the deck's --pending reveal normally
+   *  lands on the first _deckResize (the ResizeObserver's guaranteed
+   *  initial delivery re-measures the styled rect and re-poses before
+   *  the deck shows); engines without RO would hold the deck hidden
+   *  forever without this timer. Sized past a couple of frames so a
+   *  real RO delivery always wins the race to the reveal. */
+  SETTLE_FALLBACK_MS: 50,
   /** Border-light inset (px) — the lit band hugs the card's edge this
    *  far inside the border line so the fill stays within the card
    *  while its glow blooms across the border. */

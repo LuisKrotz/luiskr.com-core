@@ -35,6 +35,11 @@ export const CARD_STACK_CLASSES = Object.freeze({
   /** Modifier on the deck while a drag gesture is live — kills CSS
    *  transitions so transforms track the pointer 1:1. */
   CARD_STACK_DECK_DRAGGING: `${_B_CARD_STACK_DECK}--dragging`,
+  /** Modifier on the deck until the first measured pose pass settles —
+   *  mount hides the pile (opacity 0) so no pre-settle geometry ever
+   *  paints: the none→pose transition flight, the unstyled-tier rect
+   *  guess and the fit re-poses all resolve before the reveal. */
+  CARD_STACK_DECK_PENDING: `${_B_CARD_STACK_DECK}--pending`,
   CARD_STACK_CARD: _B_CARD_STACK_CARD,
   /** Front-card modifier — the lit, face-on card of the coverflow. */
   CARD_STACK_CARD_ACTIVE: `${_B_CARD_STACK_CARD}--active`,
