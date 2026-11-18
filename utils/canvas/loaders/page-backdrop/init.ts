@@ -14,7 +14,6 @@ import { glContextOptions } from '@core/utils/gpu/gpu-info.js'
 import { bindQuad, createQuadProgram, getUniforms } from '../../gl-program.js'
 import { watchContextLoss } from '../../gl-lifecycle.js'
 import { webglContext } from '../../webgl-mode.js'
-import { framePool } from '../../../motion/frame.js'
 import { PAGE_BACKDROP_FS, PAGE_BACKDROP_VS } from './shaders.js'
 import type { PageBackdropWebGL } from '../page-backdrop-webgl.js'
 
@@ -69,7 +68,6 @@ export function initGL(host: PageBackdropWebGL): void {
     bindQuad(gl, host.quadBuffer, aPos)
 
     const u = getUniforms(gl, host.program, {
-      u_time: WEBGL_STRINGS.U_TIME,
       u_res: 'u_res',
       u_base: 'u_base',
       u_col: 'u_col',
@@ -77,8 +75,6 @@ export function initGL(host: PageBackdropWebGL): void {
       u_key: 'u_key',
       u_shade: 'u_shade',
     })
-
-    host.uTime = u.u_time
 
     host.uRes = u.u_res
 
@@ -105,20 +101,14 @@ export function initGL(host: PageBackdropWebGL): void {
 
 /**
  * Switches to the CSS lobe path — used on context loss, init failure, or
- * an unparseable palette. Cancels the pending frame, releases every GL
- * resource, and clears the document marker so `--bg-glow*` paint again.
+ * an unparseable palette. Releases every GL resource and clears the
+ * document marker so `--bg-glow*` paint again.
  * @param host - the backdrop instance falling back
  */
 export function triggerFallback(host: PageBackdropWebGL): void {
   host.useWebGL = false
 
   host.isActive = false
-
-  if (host.animId) {
-    framePool.cancel(host.animId)
-
-    host.animId = null
-  }
 
   // Whatever GL state exists is released — a failed or lost context must
   // never keep a slot alive on the hidden canvas.

@@ -42,34 +42,16 @@
   border-image: var(--metallic-hairline) 1;
 
   // The KEY LIGHT — the same studio rig as the card-stack stage: a broad
-  // silver lobe parked just off the section's RIGHT edge, drifting on a
-  // slow breathe (transform + opacity only). No z-index: as the first
-  // positioned child it paints below later siblings; HC pins the deck
-  // tokens to none.
+  // silver lobe parked just off the section's RIGHT edge. Static painted
+  // layer. No z-index: as the first positioned child it paints below
+  // later siblings; HC pins the deck tokens to none.
   &::before {
     content: '';
     position: absolute;
-    // X-only overscan — a transformed layer's bounds feed the ancestor
-    // scrollable area, so vertical overscan re-arms body's wheel-latch
-    // slack every frame and the document stops scrolling.
-    inset: 0 -8%;
+    inset: 0;
     background-image: var(--deck-glow);
     background-repeat: no-repeat;
     pointer-events: none;
-    // Right-edge anchor — scaleX swells the lobe into the stage from the
-    // same side the key light enters.
-    transform-origin: 100% 50%;
-    animation: #{$_B_ABOUT}-keylight 18s ease-in-out infinite alternate;
-
-    // Mobile GPU budget: no persistent composited layer — the static
-    // --deck-glow wash stays painted, only the drift dies.
-    @include gpu-budget {
-      animation: none;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      animation: none;
-    }
   }
 
   // The GL backdrop carries this light — the empty animated layer dies.
@@ -635,19 +617,5 @@
   }
 }
 
-// Keylight drift — the right-side lobe slides a few percent in and out
-// of the stage's right edge while it breathes (gentle scale + opacity),
+// Key light — the right-side lobe is a static painted wash (no drift),
 // matching the card-stack rig so both sections read as one lit field.
-// Transform/opacity only — compositor-driven, zero layout and no
-// re-raster; the overscanned layer keeps the drift edges off-stage.
-@keyframes #{$_B_ABOUT}-keylight {
-  0% {
-    transform: translate3d(-4%, 0, 0) scaleX(1);
-    opacity: 0.72;
-  }
-
-  100% {
-    transform: translate3d(0, 0, 0) scaleX(1.07);
-    opacity: 1;
-  }
-}

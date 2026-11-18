@@ -10,7 +10,7 @@
 //    divider      <hr> sheen band + traveling highlight sweep
 //    button       corner-brackets action button (::before/::after Ls)
 //    strip        carousel viewport + translating track + progress rail
-//    glow         drifting ambient wash (mirrors the document body glow)
+//    glow         static ambient wash (mirrors the document body glow)
 //    bar          route progress bar (active crawl → done sweep/fade)
 //    genie        lightbox strip-warp (expand-modal media → card funnel)
 //    skel         skeleton placeholder stack (shared skeleton-utils import)
@@ -780,7 +780,7 @@ $_GENIE-FIG-H: $space-3xl + $space-md; // 60 — ≈16:9 media-card aspect
 
   // ── Body glow demo ───────────────────────────────────────────────────────
   // The staged replica of the document-level ::before wash — a soft radial
-  // band drifting across the stage like the page's ambient glow.
+  // band parked on the stage like the page's static ambient glow.
   &-glow {
     position: absolute;
     inset: 0;
@@ -795,7 +795,6 @@ $_GENIE-FIG-H: $space-3xl + $space-md; // 60 — ≈16:9 media-card aspect
       height: 140%;
       background: radial-gradient(closest-side, var(--color-accent) 0%, transparent 100%);
       opacity: 0.16;
-      animation: #{$_B}-glow-drift 7s ease-in-out infinite alternate;
     }
   }
 
@@ -1395,7 +1394,8 @@ $_GENIE-FIG-H: $space-3xl + $space-md; // 60 — ≈16:9 media-card aspect
   }
 }
 
-// Body glow — the ambient wash drifting horizontally across the stage.
+// Menu-backdrop ink veils — the slow cross-slide the staged fallback
+// membrane runs (the production membrane's mask-position drift).
 @keyframes #{$_B}-glow-drift {
   from {
     transform: translateX(0) translateY(0);

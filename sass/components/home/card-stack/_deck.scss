@@ -54,6 +54,16 @@
 
       .#{$_B_CARD_STACK}-card {
         transition: none;
+
+        // Gesture-scoped layer promotion — the base gpu-budget rule
+        // keeps `will-change: auto` at rest because ~13 pinned raster
+        // layers overrun the mobile compositing budget, but a gesture's
+        // per-frame transform writes re-raster every card without one.
+        // Promoting only while a drag owns the fan buys the scrub FPS
+        // without the always-on layer cost.
+        @include gpu-budget {
+          will-change: transform;
+        }
       }
     }
 

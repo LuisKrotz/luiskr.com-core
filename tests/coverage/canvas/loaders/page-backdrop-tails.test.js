@@ -2,10 +2,10 @@
  * @file coverage/canvas/loaders/page-backdrop-tails.test.js
  * @description Coverage tail for the WebGL page backdrop — the facade's
  * canvas mount + pool/observer wiring, initGL's four failure arms, the
- * loop's start/stop/resize/draw gates (reduced motion, high contrast,
- * theme flip, dirty-flag uploads), the palette sampler's parse arms,
- * and the purge/restore/destroy lifecycle. happy-dom has no WebGL, so
- * the shared Proxy mock stands in via the canvas prototype (the facade
+ * static-draw gates (start/stop/resize, high contrast, theme flip,
+ * dirty-flag uploads), the palette sampler's parse arms, and the
+ * purge/restore/destroy lifecycle. happy-dom has no WebGL, so the
+ * shared Proxy mock stands in via the canvas prototype (the facade
  * creates its own canvas).
  */
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals'
@@ -84,7 +84,7 @@ afterEach(() => {
 })
 
 describe('page-backdrop tails', () => {
-  test('mounts its canvas first in the container, stamps the marker and loops', async () => {
+  test('mounts its canvas first in the container, stamps the marker and draws once', async () => {
     const bg = new PageBackdropWebGL(document.body)
 
     expect(document.body.firstChild).toBe(bg.canvas)
@@ -95,21 +95,18 @@ describe('page-backdrop tails', () => {
     expect(root.classList.contains(STATE_CLASSES.HAS_GL_BACKDROP)).toBe(true)
     expect(bg._colors.length).toBe(PAGE_BACKDROP_COLOR_SLOTS * 3)
 
-    await flush()
-
-    // Loop advanced the field clock and the first draw cleared the dirty gates.
-    expect(bg._elapsed).toBeGreaterThan(0)
+    // The single static draw at start cleared both dirty gates — there is
+    // no frame loop to advance, the field never animates.
     expect(bg._paletteDirty).toBe(false)
     expect(bg._resDirty).toBe(false)
 
-    // Resize re-arms the resolution upload; the next draw clears it.
+    // An active resize re-arms then redraws in the same call — the dirty
+    // flag lands cleared again by the draw the resize triggers.
     window.dispatchEvent(new Event('resize'))
 
-    expect(bg._resDirty).toBe(true)
-
-    bg._renderFrame()
-
     expect(bg._resDirty).toBe(false)
+
+    await flush()
 
     bg.destroy()
 
@@ -169,7 +166,7 @@ describe('page-backdrop tails', () => {
     bg.destroy()
   })
 
-  test('renderFrame resamples on a theme flip and honours staticTime', () => {
+  test('renderFrame resamples on a theme flip and bails without a context', () => {
     const bg = new PageBackdropWebGL(document.body)
 
     bg._renderFrame()
@@ -178,7 +175,7 @@ describe('page-backdrop tails', () => {
 
     root.classList.add(STATE_CLASSES.DARK_MODE)
 
-    bg._renderFrame(0)
+    bg._renderFrame()
 
     expect(bg._darkAtStart).toBe(true)
     expect(bg._gain).toBe(PAGE_BACKDROP.DARK_GAIN)
@@ -187,12 +184,11 @@ describe('page-backdrop tails', () => {
     const gl = bg.gl
 
     bg.gl = null
-
-    const before = bg._elapsed
+    root.classList.remove(STATE_CLASSES.DARK_MODE)
 
     renderFrame(bg)
 
-    expect(bg._elapsed).toBe(before)
+    expect(bg._darkAtStart).toBe(true)
 
     bg.gl = gl
 
@@ -237,7 +233,7 @@ describe('page-backdrop tails', () => {
     bg2.destroy()
   })
 
-  test('reduced motion draws one static frame — class arm and matchMedia arm', () => {
+  test('reduced motion keeps the CSS path — every start is already a static draw', () => {
     root.classList.add(STATE_CLASSES.REDUCED_MOTION)
 
     const bg = new PageBackdropWebGL(document.body)
@@ -248,7 +244,8 @@ describe('page-backdrop tails', () => {
     bg.destroy()
     root.classList.remove(STATE_CLASSES.REDUCED_MOTION)
 
-    // Context acquired first, then the class flips on before start().
+    // Context acquired first, then the class flips on before start() —
+    // the static draw still lands: there is no frame loop to suppress.
     const bg2 = new PageBackdropWebGL(document.body)
 
     bg2.stop()
@@ -256,30 +253,9 @@ describe('page-backdrop tails', () => {
     bg2.start()
 
     expect(bg2.isActive).toBe(true)
-    expect(bg2.animId).toBeNull()
     expect(bg2._paletteDirty).toBe(false)
 
     root.classList.remove(STATE_CLASSES.REDUCED_MOTION)
-    bg2.stop()
-
-    // matchMedia arm.
-    const reducedMM = () => ({ matches: true })
-
-    globalThis.matchMedia = reducedMM
-    window.matchMedia = reducedMM
-    bg2.start()
-
-    expect(bg2.isActive).toBe(true)
-    expect(bg2.animId).toBeNull()
-
-    bg2.stop()
-
-    // No matchMedia at all → the `window.matchMedia &&` short-circuit → loop.
-    globalThis.matchMedia = undefined
-    window.matchMedia = undefined
-    bg2.start()
-
-    expect(bg2.animId).not.toBeNull()
 
     bg2.destroy()
   })
@@ -400,31 +376,21 @@ describe('page-backdrop tails', () => {
     bg.destroy()
   })
 
-  test('loop guards: inactive, no gl, dead path all bail without arming', () => {
+  test('inactive resize skips the redraw; a stopped renderFrame still uploads', () => {
     const bg = new PageBackdropWebGL(document.body)
 
     bg.stop()
-    bg._loop()
 
-    expect(bg.animId).toBeNull()
+    // Inactive → the resize handler sizes the buffer but never redraws:
+    // the resolution dirty flag stays armed for the next start's draw.
+    window.dispatchEvent(new Event('resize'))
 
-    bg.isActive = true
+    expect(bg._resDirty).toBe(true)
 
-    const gl = bg.gl
+    // A manual draw (restore/restart path) still uploads + clears.
+    renderFrame(bg)
 
-    bg.gl = null
-    bg._loop()
-
-    expect(bg.animId).toBeNull()
-
-    bg.gl = gl
-    bg.useWebGL = false
-    bg._loop()
-
-    expect(bg.animId).toBeNull()
-
-    bg.useWebGL = true
-    bg.isActive = false
+    expect(bg._resDirty).toBe(false)
 
     bg.destroy()
   })
@@ -482,11 +448,11 @@ describe('page-backdrop tails', () => {
 
     expect(bg.useWebGL).toBe(false)
 
-    // triggerFallback with a pending frame cancels it.
-    bg.animId = 7
+    // triggerFallback on a live instance releases GL + clears the marker.
     triggerFallback(bg)
 
-    expect(bg.animId).toBeNull()
+    expect(bg.isActive).toBe(false)
+    expect(root.classList.contains(STATE_CLASSES.HAS_GL_BACKDROP)).toBe(false)
 
     bg.destroy()
   })
@@ -546,23 +512,25 @@ describe('page-backdrop tails', () => {
     bg.destroy()
   })
 
-  test('stop without a pending frame and direct stop() clear the marker', () => {
+  test('direct stop() clears the marker and the active flag', () => {
     const bg = new PageBackdropWebGL(document.body)
 
-    bg.animId = null
     bg.isActive = true
     stop(bg)
 
+    expect(bg.isActive).toBe(false)
     expect(root.classList.contains(STATE_CLASSES.HAS_GL_BACKDROP)).toBe(false)
 
     bg.destroy()
   })
 
-  test('shader source declares the colour slots, the dither and the three periods', () => {
+  test('shader source declares the colour slots, the dither and a static pose', () => {
     expect(PAGE_BACKDROP_FS).toContain(`u_col[${PAGE_BACKDROP_COLOR_SLOTS}]`)
     expect(PAGE_BACKDROP_FS).toContain('hash13')
-    expect(PAGE_BACKDROP_FS).toContain(((2 * Math.PI) / PAGE_BACKDROP.PERIOD_1).toFixed(6))
-    expect(PAGE_BACKDROP_FS).toContain(((2 * Math.PI) / PAGE_BACKDROP.PERIOD_3).toFixed(6))
+    expect(PAGE_BACKDROP_FS).toContain('u_key')
+    expect(PAGE_BACKDROP_FS).toContain('u_shade')
+    // Static field — no time uniform, no drift offsets.
+    expect(PAGE_BACKDROP_FS).not.toContain('u_time')
     expect(FIELD_CSS_PROP_LIST.length).toBe(PAGE_BACKDROP_COLOR_SLOTS)
   })
 })

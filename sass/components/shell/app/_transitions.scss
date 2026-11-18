@@ -127,13 +127,28 @@ html.reduced-motion *::after {
 
 // ── 3D Book Page Flip Transition ──────────────────────────────────────────────
 // ── Page cross-fade transition ───────────────────────────────────────────────
-// Outgoing view fades to opacity 0 (350ms), then incoming view fades in.
-// Driven by JS in App._flipToView(); no direction logic needed.
+// Overlapping swap driven by App._flipToView(): the incoming view mounts
+// in flow while the outgoing lifts to an absolute overlay fading on top —
+// the outlet never sits empty, so no page-background void can flash
+// between the out-leg and the incoming first paint (the dark-mode
+// black frame). The reveal needs no fade-in class: the outgoing's
+// opacity drop IS the incoming's reveal.
+#view-outlet {
+  position: relative;
+}
+
 #view-outlet > * {
   transition: opacity 0.35s ease;
 }
 
 .page-fade-out {
+  // Lifts out of flow over the freshly-mounted incoming view — anchored
+  // to the outlet's top edge, full width, content height (bottom stays
+  // auto so a taller page isn't clipped). Positioned elements paint
+  // above the static incoming sibling regardless of DOM order.
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
   opacity: 0;
   pointer-events: none;
 }

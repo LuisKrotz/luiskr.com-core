@@ -161,12 +161,11 @@
       transparent 68%
     );
 
-  // Animated page backdrop (light theme) — three counter-drifting
-  // lobe fields composed like real paper-tone ZONES rather than
+  // Static page backdrop (light theme) — three parked lobe fields
+  // composed like real paper-tone ZONES rather than
   // bands: body::before carries the emerald family (green core top-left,
   // teal low-left, azure top-right); body::after carries the
-  // violet/magenta fringe zone; #app::before is a faint counter-drifting
-  // colour veil. EVERY element is a wide radial lobe — no linear
+  // violet/magenta fringe zone; #app::before is a faint colour veil. EVERY element is a wide radial lobe — no linear
   // ribbons, no shafts, no conic fan. Any discrete band edge (ribbon
   // ramp boundary, conic rasterization spoke) reads as a thin line at
   // close inspection; only overlapping smooth falloffs are guaranteed
@@ -268,7 +267,7 @@
       color-mix(in srgb, var(--field-cream) 1%, transparent) 64%,
       transparent 80%
     );
-  // Third layer — a faint counter-drifting colour veil over both wash
+  // Third layer — a faint colour veil over both wash
   // layers: three wide lobes only (green / azure / violet). No shafts
   // or fan — band geometry is what painted the thin lines.
   --bg-glow-3:
@@ -541,7 +540,7 @@
   // Card-stack stage lighting — the home coverflow's studio rig. --deck-glow
   // is the KEY light: a broad soft lobe parked just off the section's RIGHT
   // edge so the field reads lit from the right (the reference mock's studio
-  // sweep); card-stack's ::before layer drifts/breathes it. --deck-shade is
+  // sweep); card-stack's ::before layer holds it parked. --deck-shade is
   // the static counter-vignette opposite the key — the deep-left + floor
   // penumbra that makes the key read as light rather than a white patch.
   // HC pins both to none.

@@ -100,7 +100,7 @@
   // contrast: a broad neutral-white key flooding in from off the RIGHT
   // edge (feathered to the field so the lobe never draws its own outline),
   // countered by a deep penumbra pooling along the left edge and the
-  // floor. card-stack's ::before drifts the key; the shade layer stays
+  // floor. card-stack's ::before parks the key; the shade layer stays
   // static under it.
   --deck-glow: radial-gradient(
     ellipse 56% 74% at 106% 42%,
@@ -151,8 +151,8 @@
       rgba(196, 206, 220, 0.001) 64%,
       transparent 72%
     );
-  // Second counter-drift layer (body::after) — a faint violet curtain so
-  // the dark field keeps the same two-layer parallax structure.
+  // Second wash layer (body::after) — a faint violet curtain so the
+  // dark field keeps the same two-layer lobe structure.
   --bg-glow-2: radial-gradient(
     ellipse 68% 53% at 64% 30%,
     rgba(140, 120, 255, 0.035) 0%,

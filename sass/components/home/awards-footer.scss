@@ -36,42 +36,25 @@ $_B_AWARDS: 'awards-footer';
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  // The overscanned keylight must not grow a horizontal scrollbar.
+  // The key light layer must not grow a horizontal scrollbar.
   overflow-x: clip;
   padding-top: to-rem($space-2xl);
   padding-bottom: to-rem($space-3xl);
 
   // The KEY LIGHT — same rig as the card-stack/about/internals stages:
-  // a broad silver lobe parked just off the band's RIGHT edge, drifting
-  // on a slow breathe (transform + opacity only). No z-index — first
-  // positioned
-  // child; HC pins the deck tokens to none.
+  // a broad silver lobe parked just off the band's RIGHT edge. Static
+  // painted layer. No z-index — first positioned child; HC pins the
+  // deck tokens to none.
   &::before {
     content: '';
     position: absolute;
-    // X-only overscan — a transformed layer's bounds feed the ancestor
-    // scrollable area, so vertical overscan re-arms body's wheel-latch
-    // slack every frame and the document stops scrolling.
-    inset: 0 -8%;
+    inset: 0;
     background-image: var(--deck-glow);
     background-repeat: no-repeat;
     pointer-events: none;
-    // Right-edge anchor — the scaleX swell enters from the key side.
-    transform-origin: 100% 50%;
-    animation: #{$_B_AWARDS}-keylight 18s ease-in-out infinite alternate;
-
-    // Mobile GPU budget: no persistent composited layer — the static
-    // --deck-glow wash stays painted, only the drift dies.
-    @include gpu-budget {
-      animation: none;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      animation: none;
-    }
   }
 
-  // The GL backdrop carries this light — the empty animated layer dies.
+  // The GL backdrop carries this light — the empty layer dies.
   :host-context(html.has-gl-backdrop) &::before {
     content: none;
   }
@@ -260,21 +243,8 @@ $_B_AWARDS: 'awards-footer';
   }
 }
 
-// Keylight drift — the right-side lobe slides a few percent in and out
-// of the band's right edge while it breathes (gentle scale + opacity),
-// the same rig the other stages run. Transform/opacity only —
-// compositor-driven, zero layout and no re-raster.
-@keyframes #{$_B_AWARDS}-keylight {
-  0% {
-    transform: translate3d(-4%, 0, 0) scaleX(1);
-    opacity: 0.72;
-  }
-
-  100% {
-    transform: translate3d(0, 0, 0) scaleX(1.07);
-    opacity: 1;
-  }
-}
+// Key light — the right-side lobe is a static painted wash (no drift),
+// the same rig the other stages run.
 
 // ── Source code row ──────────────────────────────────────────────────────────
 // The "PROJECT SOURCE CODE: GIT" pill on the top row + docs entry + the

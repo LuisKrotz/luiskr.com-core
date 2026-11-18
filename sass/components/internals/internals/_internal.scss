@@ -9,43 +9,26 @@
 .internal {
   position: relative;
   // The stage wash — same silver studio language as the home deck: the
-  // filament under the counter-shade, the key light on the animated
+  // filament under the counter-shade, the key light on the static
   // ::before below (light floods the page from the right like the home
   // stage; the opaque -main/-extra bands still sit under the wash
   // because the pseudo paints above every non-positioned child).
   background-image: var(--filament-glow), var(--deck-shade);
-  // The overscanned keylight must not grow a horizontal scrollbar.
+  // The key light layer must not grow a horizontal scrollbar.
   overflow-x: clip;
 
   // The KEY LIGHT — one studio rig shared with the home card-stack and
-  // about stages: a broad silver lobe parked just off the RIGHT edge,
-  // drifting on a slow breathe (transform + opacity only). No z-index —
-  // first positioned
-  // child, so it reads as light falling over the page's flat surfaces;
-  // HC pins the deck tokens to none.
+  // about stages: a broad silver lobe parked just off the RIGHT edge.
+  // Static painted layer. No z-index — first positioned child, so it
+  // reads as light falling over the page's flat surfaces; HC pins the
+  // deck tokens to none.
   &::before {
     content: '';
     position: absolute;
-    // X-only overscan — a transformed layer's bounds feed the ancestor
-    // scrollable area, so vertical overscan re-arms body's wheel-latch
-    // slack every frame and the document stops scrolling.
-    inset: 0 -8%;
+    inset: 0;
     background-image: var(--deck-glow);
     background-repeat: no-repeat;
     pointer-events: none;
-    // Right-edge anchor — the scaleX swell enters from the key side.
-    transform-origin: 100% 50%;
-    animation: #{$_B_INTERNAL}-keylight 18s ease-in-out infinite alternate;
-
-    // Mobile GPU budget: no persistent composited layer — the static
-    // --deck-glow wash stays painted, only the drift dies.
-    @include gpu-budget {
-      animation: none;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      animation: none;
-    }
   }
 
   // The GL backdrop carries this light in float — the empty animated
@@ -716,32 +699,17 @@
     overflow-x: clip;
 
     // The KEY LIGHT — identical rig to .internal::before: the silver
-    // lobe off the RIGHT edge on a slow breathe. Both consumers share
-    // the one #{$_B_INTERNAL}-keylight sheet-local loop.
+    // lobe off the RIGHT edge as a static painted layer.
     &::before {
       content: '';
       position: absolute;
-      // X-only overscan — transformed bounds feed the ancestor scrollable
-      // area; any Y bleed re-arms body's wheel-latch slack per frame.
-      inset: 0 -8%;
+      inset: 0;
       background-image: var(--deck-glow);
       background-repeat: no-repeat;
       pointer-events: none;
-      transform-origin: 100% 50%;
-      animation: #{$_B_INTERNAL}-keylight 18s ease-in-out infinite alternate;
-
-      // Mobile GPU budget: no persistent composited layer — the static
-      // --deck-glow wash stays painted, only the drift dies.
-      @include gpu-budget {
-        animation: none;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        animation: none;
-      }
     }
 
-    // The GL backdrop carries this light — the empty animated layer dies.
+    // The GL backdrop carries this light — the empty layer dies.
     :host-context(html.has-gl-backdrop) &::before {
       content: none;
     }
@@ -1368,22 +1336,9 @@
   }
 }
 
-// Keylight drift — the right-side lobe slides a few percent in and out
-// of the stage's right edge while it breathes (gentle scale + opacity),
+// Key light — the right-side lobe is a static painted wash (no drift),
 // the same rig the home card-stack and about sections run so internals
-// and the footer read as one lit field. Transform/opacity only —
-// compositor-driven, zero layout and no re-raster.
-@keyframes #{$_B_INTERNAL}-keylight {
-  0% {
-    transform: translate3d(-4%, 0, 0) scaleX(1);
-    opacity: 0.72;
-  }
-
-  100% {
-    transform: translate3d(0, 0, 0) scaleX(1.07);
-    opacity: 1;
-  }
-}
+// and the footer read as one lit field.
 
 @media print {
   .modal-below[inert],

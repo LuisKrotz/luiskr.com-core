@@ -1,10 +1,9 @@
 /**
  * @file tokens/motion/page-backdrop.js
  * @description Tuning tokens for the WebGL page backdrop — the grained
- * lobe field rendered behind every route. Buffer caps, drift periods,
- * the key/shade lobe gains and the dark-theme gain live here so the
- * shader template and the loop read one declaration (zero-hardcoding
- * rule).
+ * lobe field rendered behind every route. Buffer caps, the key/shade
+ * lobe gains and the dark-theme gain live here so the shader template
+ * and the draw read one declaration (zero-hardcoding rule).
  */
 
 /**
@@ -25,20 +24,6 @@ export const PAGE_BACKDROP = Object.freeze({
    * downsample of a 32-bit-dithered field is still band-free.
    */
   MAX_DIM: 4096,
-  /**
-   * Drift periods (seconds) for the three lobe layers — pairwise
-   * coprime so the layers never phase-lock into a repeating pose; these
-   * mirror the former CSS keyframe durations (16/21/27s).
-   */
-  PERIOD_1: 16,
-  PERIOD_2: 21,
-  PERIOD_3: 27,
-  /**
-   * Key-light drift period (seconds) — coprime with the three field
-   * periods so the right-side specular pool never phase-locks into a
-   * repeating pose.
-   */
-  PERIOD_KEY: 23,
   /**
    * Key-light peak gains — the right-side specular lobe. Dark is dimmer
    * (a soft studio pool on the near-black field); light is a stronger
@@ -73,8 +58,8 @@ export const PAGE_BACKDROP = Object.freeze({
   GRAIN_LUM_LSB: 2.4,
   /**
    * Dark-theme alpha gain applied to every lobe peak — the dark field
-   * keeps the same parallax structure at ember strength (≈0.04 peak)
-   * so the near-black canvas never lights up.
+   * keeps the same lobe structure at ember strength (≈0.04 peak) so
+   * the near-black canvas never lights up.
    */
   DARK_GAIN: 0.14,
   /**

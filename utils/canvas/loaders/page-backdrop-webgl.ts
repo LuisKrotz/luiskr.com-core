@@ -13,7 +13,7 @@
  *   shaders  dithered lobe-field GLSL
  *   theme    --field-* / --bg-primary / specular+ink sampling into uniform buffers
  *   init     GL bootstrap + fallback trigger
- *   loop     start/stop, resize sync, pooled rAF loop, per-frame draw
+ *   loop     start/stop, resize sync, on-demand static draw (no frame loop)
  */
 
 import { APP_IDS } from '@core/tokens/ids/app.js'
@@ -28,7 +28,7 @@ import { releaseQuadGL } from '../gl-lifecycle.js'
 import { webglPool } from '../webgl-pool.js'
 import { initGL, triggerFallback } from './page-backdrop/init.js'
 import { sampleTheme } from './page-backdrop/theme.js'
-import { handleResize, loop, renderFrame, start, stop } from './page-backdrop/loop.js'
+import { handleResize, renderFrame, start, stop } from './page-backdrop/loop.js'
 import { PAGE_BACKDROP_COLOR_SLOTS } from './page-backdrop/shaders.js'
 
 /**
@@ -45,10 +45,6 @@ export class PageBackdropWebGL {
   gl: WebGLRenderingContext | null = null
   program: WebGLProgram | null = null
   quadBuffer: WebGLBuffer | null = null
-  animId: number | null = null
-  /** Bound per-frame tick — allocated once so the pooled re-arm never allocs. */
-  _frameTick = (): void => this._loop()
-  uTime: WebGLUniformLocation | null = null
   uRes: WebGLUniformLocation | null = null
   uBase: WebGLUniformLocation | null = null
   uCol: WebGLUniformLocation | null = null
@@ -60,9 +56,6 @@ export class PageBackdropWebGL {
   height = 0
   isActive = false
   useWebGL = false
-  _lastFrame = 0
-  /** Field clock in seconds — accumulates clamped frame deltas. */
-  _elapsed = 0
   /** Surface colour (`--bg-primary`) as an RGB float triple. */
   _base = new Float32Array(3)
   /** Seven field hues, flat RGB — the `u_col` uniform array payload. */
@@ -142,15 +135,21 @@ export class PageBackdropWebGL {
   }
 
   /**
-   * Root class flip — high contrast pauses the field (the HC surface is
-   * flat by contract); leaving it resumes. Dark/light flips are caught
-   * per frame by renderFrame, so only the HC edge needs the observer.
+   * Root class flip — high contrast stops the field (the HC surface is
+   * flat by contract); leaving it resumes. A dark/light flip redraws the
+   * static pose with the resampled palette; only the HC edge stops it.
    */
   _onRootClass(): void {
     const hc = document.documentElement.classList.contains(STATE_CLASSES.HIGH_CONTRAST)
 
     if (hc && this.isActive) {
       this.stop()
+
+      return
+    }
+
+    if (!hc && this.isActive) {
+      this._renderFrame()
 
       return
     }
@@ -168,22 +167,14 @@ export class PageBackdropWebGL {
     stop(this)
   }
 
-  /** Syncs the backing store with the viewport. */
+  /** Syncs the backing store with the viewport and redraws. */
   _handleResize(): void {
     handleResize(this)
   }
 
-  /** Pooled rAF callback — draws the field each frame. */
-  _loop(): void {
-    loop(this)
-  }
-
-  /**
-   * Draws one frame; a fixed `staticTime` renders one settled pose.
-   * @param staticTime - field time for a static frame
-   */
-  _renderFrame(staticTime?: number | null): void {
-    renderFrame(this, staticTime)
+  /** Draws the one static field pose. */
+  _renderFrame(): void {
+    renderFrame(this)
   }
 
   /**

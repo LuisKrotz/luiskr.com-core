@@ -59,8 +59,7 @@
   // The stage's static wash: the cyan filament under the key light's
   // counter-shade (the deep-left + floor penumbra the reference's
   // right-side key throws into relief). The key light itself lives on
-  // the animated ::before below — a moving layer, not a painted image,
-  // so the drift never repaints.
+  // the static ::before below.
   background-image: var(--filament-glow), var(--deck-shade);
   // Side cards intentionally overflow the %MAXAREA gutter on the stacked
   // layout (the mock's "peek in from the edges" hint) — clip the x-axis so
@@ -68,42 +67,22 @@
   overflow-x: clip;
 
   // The KEY LIGHT — the reference's studio sweep: a broad soft lobe
-  // parked just off the section's RIGHT edge, drifting in and out on a
-  // slow breathe so the coverflow field reads lit from the right
-  // rather than flat black. It rides a ::before layer because the
-  // animation is transform + opacity only (compositor-driven — a
-  // painted background-image would re-raster every frame). No z-index:
-  // as the first positioned child it paints below every later sibling
-  // (header, deck, info, foot), and HC pins --deck-glow to none.
+  // parked just off the section's RIGHT edge so the coverflow field
+  // reads lit from the right rather than flat black. Static painted
+  // layer. No z-index: as the first positioned child it paints below
+  // every later sibling (header, deck, info, foot), and HC pins
+  // --deck-glow to none.
   &::before {
     content: '';
     position: absolute;
-    // 8% overscan on X only — horizontal overscan is what the X-drift
-    // needs, and vertical overscan is forbidden: a transformed layer's
-    // bounds feed the ancestor scrollable area, so any Y bleed re-arms
-    // body's latch slack every frame and eats wheel scroll.
-    inset: 0 -8%;
+    inset: 0;
     background-image: var(--deck-glow);
     background-repeat: no-repeat;
     pointer-events: none;
-    // Anchor at the right edge — scaleX swells the lobe INTO the stage,
-    // the same direction the key light enters from.
-    transform-origin: 100% 50%;
-    animation: #{$_B_CARD_STACK}-keylight 18s ease-in-out infinite alternate;
-
-    // The full-viewport animated lobe is one more persistent composited
-    // layer the mobile pile can't afford — the static wash stays.
-    @include gpu-budget {
-      animation: none;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      animation: none;
-    }
   }
 
-  // The GL backdrop carries this light in float — the empty animated
-  // layer dies while the shader paints it.
+  // The GL backdrop carries this light in float — the empty layer dies
+  // while the shader paints it.
   :host-context(html.has-gl-backdrop) &::before {
     content: none;
   }
@@ -293,20 +272,6 @@
   }
 }
 
-// Keylight drift — the right-side lobe slides a few percent in and out
-// of the stage's right edge while it breathes (gentle scale + opacity),
-// so the field reads as a slow studio light moving rather than a static
-// wash. Transform/opacity only — compositor-driven, zero layout and no
-// re-raster. The gradient's feathered transparent edge covers the
-// travel, so no lobe outline ever shows mid-drift.
-@keyframes #{$_B_CARD_STACK}-keylight {
-  0% {
-    transform: translate3d(-4%, 0, 0) scaleX(1);
-    opacity: 0.72;
-  }
-
-  100% {
-    transform: translate3d(0, 0, 0) scaleX(1.07);
-    opacity: 1;
-  }
-}
+// Key light — the right-side lobe is a static painted wash (no drift);
+// its gradient's feathered transparent edge keeps the lobe outline
+// invisible against the stage.

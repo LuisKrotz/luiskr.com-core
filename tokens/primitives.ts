@@ -33,6 +33,10 @@ export * from './strings/text.js'
 export const MEDIA_QUERIES = Object.freeze({
   POINTER_FINE: '(pointer: fine)',
   POINTER_COARSE: '(pointer: coarse)',
+  /** The stylesheet's `gpu-budget` mixin in JS form — coarse pointers or
+   *  ≤1023px viewports: the mobile compositing-budget surface where
+   *  ambient layers, persistent compositing, and oversized shadows drop. */
+  GPU_BUDGET: '(max-width: 1023px), (pointer: coarse)',
   /** Primary input cannot hold :hover — the joust (tap-to-reveal) trigger. */
   HOVER_NONE: '(hover: none)',
   MAX_WIDTH_768: '(max-width: 768px)',

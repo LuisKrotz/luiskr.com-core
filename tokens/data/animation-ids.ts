@@ -65,7 +65,7 @@ export const ANIMATION_IDS = Object.freeze({
   ABOUT_TEXT: 'about-text',
   /** Related project tiles — hover lift/zoom spring + border sheen (CSS linear() springs). */
   RELATED_TILE: 'related-tile',
-  /** Document ambient glow — slow radial drift behind content (CSS). */
+  /** Document ambient glow — static radial wash behind content (CSS). */
   BODY_GLOW: 'body-glow',
   /** Route progress bar — scaleX crawl to ~70% while a navigation is in flight, then sweep-to-100 + fade (CSS transitions). */
   PROGRESS_BAR: 'progress-bar',

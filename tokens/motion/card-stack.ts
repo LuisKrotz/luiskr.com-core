@@ -474,4 +474,10 @@ export const CARD_STACK_LAYOUT = Object.freeze({
   /** Opacity floor for the deepest visible fan card — low enough that
    *  the outermost slivers fade into the dark stage like the reference. */
   FAN_DIM_FLOOR: 0.32,
+  /** Opacity drop per parked level on the stacked tiers — the card a
+   *  swipe carries under the pile fades in step with the drag fraction
+   *  (a is continuous, so a cancel scrubs the dim back to 1 instead of
+   *  snapping it), ending at 0.45 once parked so the stale sheet reads
+   *  recessed behind the front card instead of ghost-lit. */
+  PARK_DIM_STEP: 0.55,
 })

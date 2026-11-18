@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════════════════
-//  structure/_document.scss — document base — html/body resets, the body-glow-drift + app-glow-sweep backdrop keyframes, #app mount, element resets, app-root, modal scroll-lock.
+//  structure/_document.scss — document base — html/body resets, the static field backdrop layers, #app mount, element resets, app-root, modal scroll-lock.
 //  Imported by _structure.scss (manifest) — not compiled standalone.
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -63,112 +63,43 @@ body {
   overflow-wrap: normal; // never split a word across lines — wrap entire words only
   hyphens: none; // no automatic hyphenation
 
-  // The animated field backdrop: two of the three fixed, oversized wash
-  // layers behind all content (z-index -1 keeps them above the body's
-  // own background but below every child; the third rides on
-  // #app::before below). Transform-only animations → pure compositor,
-  // no repaints. The -25% inset oversizes each layer so the drift never
-  // exposes an edge (the sweeps translate ±5-6% of a 150% layer ≈ ±9%
-  // of the viewport — well inside the 25% margin). ::before carries the
-  // emerald-family lobe field on a 16s wander; ::after carries the
-  // violet-fringe lobe field on a 21s counter-drift, so the colour
-  // zones visibly parallax like polar light. Every painted element is
-  // a wide eased radial lobe — band geometry (ribbons, shafts, conic
+  // The field backdrop: two of the three fixed wash layers behind all
+  // content (z-index -1 keeps them above the body's own background but
+  // below every child; the third rides on #app::before below). All
+  // layers are static. ::before carries the emerald-family lobe field;
+  // ::after carries the violet-fringe lobe field. Every painted element
+  // is a wide eased radial lobe — band geometry (ribbons, shafts, conic
   // fans) is what used to read as thin lines across the field. Inert
-  // values (--bg-glow*: none in HC) paint
-  // nothing while the idle animation stays compositor-cheap.
+  // values (--bg-glow*: none in HC) paint nothing.
   &::before,
   &::after {
     content: '';
     position: fixed;
-    inset: -25%;
+    inset: 0;
     z-index: -1;
     pointer-events: none;
   }
 
   &::before {
     background: var(--bg-glow);
-    animation: body-glow-drift 16s cubic-bezier(0.37, 0, 0.3, 1) infinite alternate;
 
-    // Mobile GPU budget: one static wash layer instead of three drifting
-    // ones — the sibling ::after and #app::before drop out below, so this
-    // layer stacks all three gradient lists itself (first listed paints
-    // on top, matching today's z-order). inset:-25% keeps the keyframe-0%
-    // frame, so the field reads identical, just unmoving.
+    // Mobile GPU budget: no ambient glow at all — the lobe field is a
+    // desktop surface; phones/tablets paint the flat field colour (the
+    // sibling ::after and #app::before drop out below for the same
+    // contract).
     @include gpu-budget {
-      animation: none;
-      background: var(--bg-glow-3), var(--bg-glow-2), var(--bg-glow);
+      content: none;
     }
   }
 
   &::after {
     background: var(--bg-glow-2);
-    animation: body-glow-drift-alt 21s cubic-bezier(0.37, 0, 0.3, 1) infinite alternate;
 
-    // Mobile GPU budget: no persistent composited layer — ::before above
-    // already carries this wash statically.
+    // Mobile GPU budget: no ambient glow — the wash layers are a
+    // desktop surface.
     @include gpu-budget {
       content: none;
     }
-  }
-}
-
-// Drift path — three poses on alternate so the loop reads as an endless
-// wander rather than a ping-pong between two corners. The ±9% travel
-// on the 150% layer moves lobe centres ~14% of the viewport — the
-// colour zones visibly drift instead of reading as a static tint (the -25%
-// inset still leaves ~11% overscan at the widest pose). TRANSLATE ONLY,
-// no scale/rotate: scaled or rotated fixed layers force per-frame
-// re-rasterization in 256px tiles whose seams read as faint lines
-// across the field (rotated seams read as diagonal streaks); pure
-// translation slides one static raster on the compositor, which can
-// paint no seams at all.
-@keyframes body-glow-drift {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-
-  50% {
-    transform: translate3d(-9%, 6%, 0);
-  }
-
-  100% {
-    transform: translate3d(7%, -6%, 0);
-  }
-}
-
-// Counter-drift — the mirrored wander of the fringe layer; its
-// different period (21s vs 16s) makes the violet zone slide against the
-// cream family so the field parallax never visibly repeats.
-@keyframes body-glow-drift-alt {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-
-  50% {
-    transform: translate3d(7%, -6.5%, 0);
-  }
-
-  100% {
-    transform: translate3d(-7.5%, 6%, 0);
-  }
-}
-
-// Third counter-drift — the veil layer wanders on a 27s period coprime
-// with 16s/21s so the three wash layers never phase-lock into a
-// repeating pattern. Same translate-only rule: the former ±7° sway
-// rotated the raster and painted diagonal seam lines.
-@keyframes app-glow-sweep {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-
-  50% {
-    transform: translate3d(-6%, 4.5%, 0);
-  }
-
-  100% {
-    transform: translate3d(6%, -4.5%, 0);
   }
 }
 
@@ -182,23 +113,20 @@ body {
   // Same stable-floor rule as body — see the svh note above.
   min-height: 100svh;
 
-  // Third field layer — the counter-drifting colour veil (--bg-glow-3).
-  // body's two pseudo-elements are already spent on the wash layers, so
-  // the veil rides here: #app's z-index:1 stacking context pins the -1 pseudo
-  // above the body's glow layers but below every routed child.
-  // Transform-only animation → pure compositor; `none` in HC paints
-  // nothing while the idle sweep stays cheap.
+  // Third field layer — the colour veil (--bg-glow-3). body's two
+  // pseudo-elements are already spent on the wash layers, so the veil
+  // rides here: #app's z-index:1 stacking context pins the -1 pseudo
+  // above the body's glow layers but below every routed child. Static
+  // layer — `none` in HC paints nothing.
   &::before {
     content: '';
     position: fixed;
-    inset: -25%;
+    inset: 0;
     z-index: -1;
     pointer-events: none;
     background: var(--bg-glow-3);
-    animation: app-glow-sweep 27s cubic-bezier(0.37, 0, 0.3, 1) infinite alternate;
 
-    // Mobile GPU budget: no persistent composited layer — body's ::before
-    // carries this wash statically on coarse pointers.
+    // Mobile GPU budget: no ambient glow — the veil is a desktop layer.
     @include gpu-budget {
       content: none;
     }
@@ -208,10 +136,8 @@ body {
   // noise tile riding above the three glow layers (::after paints after
   // ::before at equal z-index). Its ±6%-alpha luminance speckle breaks
   // the quantization steps the large soft washes band into — the thin
-  // stripes between gradient stops — for zero repaint cost: the layer
-  // never animates, it just recomposites over the drifting layers. No
-  // overscan needed (nothing transforms). HC pins --bg-grain: none so
-  // the tile paints nothing there.
+  // stripes between gradient stops — for zero repaint cost. HC pins
+  // --bg-grain: none so the tile paints nothing there.
   &::after {
     content: '';
     position: fixed;
@@ -219,6 +145,13 @@ body {
     z-index: -1;
     pointer-events: none;
     background: var(--bg-grain, none);
+
+    // Mobile GPU budget: no grain layer either — the tile exists to
+    // dither the glow lobes, and the glow itself is a desktop surface;
+    // on phones/tablets it would only speckle the flat field.
+    @include gpu-budget {
+      content: none;
+    }
   }
 }
 
