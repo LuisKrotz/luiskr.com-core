@@ -123,29 +123,6 @@
     @media (min-width: 768px) and (orientation: landscape) {
       margin-bottom: var(--space-xl);
     }
-
-    // Phone legibility scrim — the pile's up-left bleed slides busy card
-    // art under the header band, and a bare text halo cannot knock out a
-    // whole field of it. A soft --bg-primary radial behind the row
-    // (overscanned past the header box so the transparent edge lands
-    // inside the pile, not on the glyphs) lifts title + pill without a
-    // hard chip outline. z-index:-1 keeps it under the header's own text
-    // while the header's stacking context keeps it above the deck;
-    // pointer-events:none so its overscan never eats deck touches.
-    @media (max-width: 767px) {
-      &::before {
-        content: '';
-        position: absolute;
-        z-index: -1;
-        inset: calc(var(--space-xl) * -1) calc(var(--space-3xl) * -1);
-        background: radial-gradient(
-          closest-side,
-          color-mix(in srgb, var(--bg-primary) 88%, transparent),
-          transparent
-        );
-        pointer-events: none;
-      }
-    }
   }
 
   &-title {

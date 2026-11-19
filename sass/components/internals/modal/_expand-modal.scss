@@ -414,10 +414,18 @@
       backdrop-filter: blur(to-rem($space-lg + $space-xs));
     }
 
-    // The genie warp is the entrance — the CSS zoom only runs when JS
-    // marks the content with --css-zoom (transition unavailable).
+    // The genie warp is the entrance — the CSS fallback only runs when
+    // JS marks the content with --css-zoom (transition unavailable).
     &--css-zoom {
       animation: modal-zoom-in 0.45s $ease-out forwards;
+
+      // Phones + tablets: the genie warp never runs below 1024 (see
+      // genie.ts), so this is the REAL entrance, not a rare fallback —
+      // it degrades to a pure organic fade (a soft rise settle, no
+      // scale punch) that cheap GPUs hold at full frame rate.
+      @media (max-width: 1023px) {
+        animation: modal-fade-in 0.45s $ease-out forwards;
+      }
     }
 
     @include layout-1024() {
@@ -430,6 +438,12 @@
   &--closing {
     transform-origin: center top;
     animation: modal-zoom-out 0.32s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+
+    // Same contract as the entrance: under 1024 the exit is the
+    // matching organic fade — mirror dissolve with the same soft drift.
+    @media (max-width: 1023px) {
+      animation: modal-fade-out 0.32s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+    }
   }
 
   // Genie transition surface — a fullscreen fixed canvas inside the
@@ -733,6 +747,33 @@
   to {
     opacity: 0;
     transform: scale(0.7) translateY(#{to-rem($space-sm * $space-md)});
+  }
+}
+
+// ── Fade-in/out (<1024 real entrance/exit) ────────────────────────────────
+// The genie warp is desktop-only — phones and tablets get this organic
+// dissolve: opacity carries the motion while a one-token rise/settle
+// keeps it from reading as a flat opacity snap. Composited-only
+// properties — the whole animation runs off-main-thread.
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(#{to-rem($space-md)});
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modal-fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(#{to-rem($space-md)});
   }
 }
 

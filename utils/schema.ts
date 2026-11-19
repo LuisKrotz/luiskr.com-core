@@ -320,13 +320,17 @@ const firstSectionText = (node: unknown): string => {
  * flags (isFamilyFriendly / requiresSubscription / isAccessibleForFree)
  * and the inLanguage/uploader fields feed the video rich-result
  * classifiers so the clip stays indexable on every locale surface.
+ * `uploadDate` carries the project's git-derived publication stamp —
+ * the required field Google's video enhancement report gates on;
+ * undated projects still omit it rather than inventing one.
  */
 const videoObjectFor = (
   media: ProjectMediaNode,
   folder: string,
   title: string,
   description: string,
-  lang: string
+  lang: string,
+  uploadDate?: string
 ): Record<string, unknown> => {
   const { source, thumb } = buildMediaUrls(CDN_URLS.CDN_BASE, folder, media)
 
@@ -337,6 +341,7 @@ const videoObjectFor = (
     description: description || `Showcase video for ${title}`,
     thumbnailUrl: [thumb],
     contentUrl: source,
+    ...(uploadDate ? { uploadDate } : {}),
     inLanguage: LOCALE_TAGS[lang]?.bcp || lang,
     isFamilyFriendly: true,
     requiresSubscription: false,
@@ -423,7 +428,7 @@ export const generateProjectArticleSchema = (
 
   // Add VideoObject schema if project has a cover video or section videos
   if (!omitCoverVideo && project.cover?.isVideo && project.cover.src) {
-    entities.push(videoObjectFor(project.cover, folder, title, description, locale))
+    entities.push(videoObjectFor(project.cover, folder, title, description, locale, project.date))
   }
 
   return entities
@@ -985,7 +990,7 @@ export const generateProjectSchema = (
     ? []
     : media
         .filter((m) => m.isVideo)
-        .map((m) => videoObjectFor(m, folder, title, description, locale))
+        .map((m) => videoObjectFor(m, folder, title, description, locale, project.date))
 
   const rawThemes = project[SEARCH_THEMES_KEY]
 
@@ -1025,7 +1030,7 @@ export const generateProjectSchema = (
     activeMedia && activeUrls
       ? activeUrls.isVideo
         ? {
-            ...videoObjectFor(activeMedia, folder, title, description, locale),
+            ...videoObjectFor(activeMedia, folder, title, description, locale, project.date),
             '@id': `${pageUrl}#video`,
           }
         : {

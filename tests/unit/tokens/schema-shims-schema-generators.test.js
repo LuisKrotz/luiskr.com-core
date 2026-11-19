@@ -89,6 +89,8 @@ describe('schema generators', () => {
   test('generateProjectArticleSchema emits the git-derived stamps + org publisher', () => {
     const project = {
       title: TEST_TEXT.HEADING,
+      folder: `${TEST_PROJECTS.CICB}/`,
+      cover: { src: 'cover', isVideo: true },
       date: '2026-08-11T14:35:01-03:00',
       modified: '2026-10-27T00:58:59-03:00',
     }
@@ -101,6 +103,10 @@ describe('schema generators', () => {
     // Google News/Discover contract — while author stays the Person.
     expect(entities[0].publisher['@id']).toBe(`${NET_STRINGS.SITE_URL}#organization`)
     expect(entities[0].author['@id']).toBe(`${NET_STRINGS.SITE_URL}#person`)
+    // The project's publication stamp lands on the clip as uploadDate —
+    // the required field Google's video enhancement report gates on.
+    expect(entities[1]['@type']).toBe('VideoObject')
+    expect(entities[1].uploadDate).toBe(project.date)
   })
 
   test('generateProjectArticleSchema uses the uncompressed mozjpg for image covers', () => {
