@@ -123,6 +123,29 @@
     @media (min-width: 768px) and (orientation: landscape) {
       margin-bottom: var(--space-xl);
     }
+
+    // Phone legibility scrim — the pile's up-left bleed slides busy card
+    // art under the header band, and a bare text halo cannot knock out a
+    // whole field of it. A soft --bg-primary radial behind the row
+    // (overscanned past the header box so the transparent edge lands
+    // inside the pile, not on the glyphs) lifts title + pill without a
+    // hard chip outline. z-index:-1 keeps it under the header's own text
+    // while the header's stacking context keeps it above the deck;
+    // pointer-events:none so its overscan never eats deck touches.
+    @media (max-width: 767px) {
+      &::before {
+        content: '';
+        position: absolute;
+        z-index: -1;
+        inset: calc(var(--space-xl) * -1) calc(var(--space-3xl) * -1);
+        background: radial-gradient(
+          closest-side,
+          color-mix(in srgb, var(--bg-primary) 88%, transparent),
+          transparent
+        );
+        pointer-events: none;
+      }
+    }
   }
 
   &-title {
@@ -146,10 +169,16 @@
     letter-spacing: var(--space-2xs);
 
     // Phone legibility — the stacked pile bleeds up-left into the
-    // header band, and weight-100 glyphs over busy card art wash out:
-    // a black glow lifts the title off whatever slides under it.
+    // header band, and weight-100 glyphs over busy card art wash out.
+    // The knockout halo is --bg-primary, not black: a dark shadow only
+    // deepens already-dark strokes, while a light one cuts the art away
+    // around each glyph like a sticker edge. Two stacked radii build a
+    // dense near-opaque core that feathers out.
     @media (max-width: 767px) {
-      text-shadow: 0 0 calc(var(--space-sm) * 2) var(--color-black-raw);
+      text-shadow:
+        0 0 var(--space-sm) var(--bg-primary),
+        0 0 calc(var(--space-sm) * 2) var(--bg-primary),
+        0 0 calc(var(--space-sm) * 3) var(--bg-primary);
     }
 
     @include layout-768() {
@@ -204,10 +233,13 @@
       background-color 0.25s ease;
 
     // Phone — the pile's up-left bleed slides under the pill too:
-    // same glow as the title plus a near-solid ground so the control
-    // stays readable (and reads on top of the cards, not behind them).
+    // the same --bg-primary knockout halo as the title plus a
+    // near-solid ground, so the control stays readable (and reads on
+    // top of the cards, not behind them).
     @media (max-width: 767px) {
-      text-shadow: 0 0 calc(var(--space-sm) * 2) var(--color-black-raw);
+      text-shadow:
+        0 0 var(--space-sm) var(--bg-primary),
+        0 0 calc(var(--space-sm) * 2) var(--bg-primary);
       background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
     }
 

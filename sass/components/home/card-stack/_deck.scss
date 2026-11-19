@@ -25,11 +25,13 @@
     height: 100%;
     overflow: visible;
     cursor: grab;
-    // The deck owns every touch gesture inside it — pan-y let the UA
-    // claim a diagonal drift as a scroll/pull mid-swipe (pointercancel,
-    // snap-back, cancelable=false interventions). Interacting with the
-    // deck must never scroll the page.
-    touch-action: none;
+    // Directional touch contract: pan-y keeps vertical drags on the
+    // native scroll path (the gesture code yields vertical-dominant
+    // streams before committing), while horizontal movement is left to
+    // JS — the UA never claims it, so a committed swipe can't be
+    // stolen into a pointercancel/snap-back. Full `none` was wrong:
+    // it blocked the vertical page scroll users expect over the deck.
+    touch-action: pan-y;
     user-select: none;
     -webkit-user-drag: none;
 
