@@ -145,6 +145,13 @@
     font-size: to-rem($space-xl + $space-xs);
     letter-spacing: var(--space-2xs);
 
+    // Phone legibility — the stacked pile bleeds up-left into the
+    // header band, and weight-100 glyphs over busy card art wash out:
+    // a black glow lifts the title off whatever slides under it.
+    @media (max-width: 767px) {
+      text-shadow: 0 0 calc(var(--space-sm) * 2) var(--color-black-raw);
+    }
+
     @include layout-768() {
       letter-spacing: to-rem($space-xs);
     }
@@ -195,6 +202,14 @@
       color 0.25s ease,
       border-color 0.25s ease,
       background-color 0.25s ease;
+
+    // Phone — the pile's up-left bleed slides under the pill too:
+    // same glow as the title plus a near-solid ground so the control
+    // stays readable (and reads on top of the cards, not behind them).
+    @media (max-width: 767px) {
+      text-shadow: 0 0 calc(var(--space-sm) * 2) var(--color-black-raw);
+      background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
+    }
 
     &:hover,
     &:focus-visible {

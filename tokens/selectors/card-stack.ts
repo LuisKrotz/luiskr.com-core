@@ -40,8 +40,9 @@ export const CARD_STACK_SELECTORS = Object.freeze({
    *  injected copy re-runs the stage-cap fit. */
   CARD_STACK_CARD_INFO: `.${_B_CARD_STACK_CARD}-info`,
   CARD_STACK_CARD_INFO_TITLE: `.${_B_CARD_STACK_CARD}-info-title`,
-  /** The in-card description slot — its <draw-text> writer re-arms on
-   *  every front change (stacked tiers animate the body text per card). */
+  /** The in-card description slot — plain static text mounted at render
+   *  (draw-text is desktop-only); never rewritten on nav, so a card's
+   *  measured box stays constant through the whole gesture lifecycle. */
   CARD_STACK_CARD_INFO_DESC: `.${_B_CARD_STACK_CARD}-info-desc`,
   CARD_STACK_NAV_INDEX: `.${_B_CARD_STACK}-nav-index`,
   /** Live position text inside the nav-index button. */

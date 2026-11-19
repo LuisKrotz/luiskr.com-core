@@ -117,7 +117,9 @@
     inset: 0;
   }
 
-  // Lead summary — clamped to 2 lines under the title.
+  // Lead summary — full copy under the title, never clamped: the
+  // pile's uniform height is measured off the tallest description in
+  // the deck (fitDeckToFront), so every card always fits its text.
   &-card-desc {
     @extend %TXT_SM;
 
@@ -126,11 +128,6 @@
     line-height: 1.45;
     color: var(--text-muted-on-dark);
     margin: 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   // Corner-bracket CTA anchored at the bottom-left of the card body.

@@ -53,10 +53,17 @@ $_B_EXPAND_MODAL: 'expand-modal';
     will-change: opacity;
 
     // Mobile GPU budget: the permanent will-change pins a composited
-    // layer per figure even after the fade completes — the opacity
-    // transition alone is cheap enough to run unpromoted.
+    // layer per figure even after the fade completes.
     @include gpu-budget {
       will-change: auto;
+    }
+
+    // Phones: no decode fade — the layer is always at full strength
+    // and simply paints the moment its src lands (the blurred thumb
+    // under it still covers the unloaded state).
+    @media (max-width: 767px) {
+      opacity: 1;
+      transition: none;
     }
 
     &.render-media--loaded {

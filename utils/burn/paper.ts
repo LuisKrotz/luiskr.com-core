@@ -224,7 +224,12 @@ export function rasterizeTitle(
   cssH: number,
   ink: string
 ): void {
-  const ctx = paper.getContext(WEBGL_STRINGS.CONTEXT_2D)
+  // willReadFrequently — analyzePaper() walks the alpha channel via
+  // getImageData on this same context; without the hint Chrome keeps the
+  // backing store on the GPU and every readback pays a sync transfer
+  // (and warns). The context is per-canvas, so the first acquisition
+  // must carry the flag.
+  const ctx = paper.getContext(WEBGL_STRINGS.CONTEXT_2D, { willReadFrequently: true })
 
   if (!ctx) return
 
@@ -316,7 +321,10 @@ export function rasterizeTitle(
  * @param s The live session — fills letters/colInk/colLetter + work size.
  */
 export function analyzePaper(s: BurnSession): void {
-  const ctx = s.paper.getContext(WEBGL_STRINGS.CONTEXT_2D)
+  // Same acquisition contract as rasterizeTitle — matching options keep
+  // the shared per-canvas context CPU-backed so the getImageData walk
+  // below never forces a GPU→CPU readback.
+  const ctx = s.paper.getContext(WEBGL_STRINGS.CONTEXT_2D, { willReadFrequently: true })
 
   if (!ctx) return
 

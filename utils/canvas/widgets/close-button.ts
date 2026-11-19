@@ -67,6 +67,15 @@ export class CloseButtonWebGL {
   _wasmPending = false
   /** Last wasm-painted t — frame(dt) consumes deltas, not absolutes. */
   _wasmT = 0
+  /**
+   * Pour-armed click — set by onClick, consumed by animate() once the
+   * liquid fill is visibly up. On touch there is no hover to warm the
+   * pour, so an immediate close would hide the button's liquid
+   * signature entirely; while armed, animate() also pins the pour
+   * target at 1 so the finger-lift's synthesized mouseleave can't
+   * decay it before the fire point.
+   */
+  _fireOnFill = false
   boundTarget: Element | null = null
   onMouseEnter = (): void => {
     this.setHover(true)
@@ -75,9 +84,27 @@ export class CloseButtonWebGL {
     this.setHover(false)
   }
   onClick = (): void => {
+    // Checked before triggerClick: a pour-armed click skips the rest of
+    // the fill — the repeat click's action runs now. triggerClick's own
+    // animate() kick could otherwise consume the flag via the threshold
+    // path first and this arm would re-arm + double-fire.
+    if (this._fireOnFill) {
+      this._fireOnFill = false
+
+      this.onClickAction?.()
+
+      return
+    }
+
     this.triggerClick()
 
-    this.onClickAction?.()
+    // Arm the pour-fire — animate() releases the action once the fill
+    // reads (or inline on the paths that can't pour). The hover
+    // channel drives the fill; on touch the tap's synthesized enter is
+    // what starts it, exactly as a desktop hover would have.
+    this._fireOnFill = true
+
+    this.setHover(true)
   }
 
   /**

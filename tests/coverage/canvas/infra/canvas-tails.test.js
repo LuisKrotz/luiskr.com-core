@@ -73,6 +73,31 @@ describe('canvas tails', () => {
     cb._renderWebGL(0)
     cb.animate()
     cb.destroy()
+
+    btn.remove()
+  })
+
+  test('CloseButtonWebGL pour-fire: second click while armed fires inline', () => {
+    const btn = document.createElement('button')
+    const canvas = makeCanvas()
+
+    btn.appendChild(canvas)
+    document.body.appendChild(btn)
+    attachNoGL(canvas)
+
+    let clicked = 0
+    const cb = new CloseButtonWebGL(canvas, () => clicked++)
+
+    // Arm the pour-fire directly — onClick's second-call path must
+    // release the action inline instead of waiting on the animation.
+    cb._fireOnFill = true
+    cb.onClick()
+
+    expect(cb._fireOnFill).toBe(false)
+    expect(clicked).toBe(1)
+
+    cb.destroy()
+    btn.remove()
   })
 
   test('parseCssColor non-string arm', () => {

@@ -163,6 +163,64 @@ describe('close-button render tail', () => {
     expect(bare.animate).toHaveBeenCalled()
   })
 
+  test('pour-armed click pins the fill target and fires at the fill point', () => {
+    const gl = makeGl()
+    const action = jest.fn()
+    const host = makeHost({
+      gl,
+      program: 'p',
+      quadBuffer: 'b',
+      _fireOnFill: true,
+      onClickAction: action,
+    })
+
+    // isHovered false but _fireOnFill true → the pour target stays 1 and
+    // the fill still rises (a touch finger-lift can't drain an armed pour).
+    animate(host)
+
+    expect(host.hoverLevel).toBeCloseTo(0.016, 5)
+    expect(action).not.toHaveBeenCalled()
+
+    // Push past the fire level — the pending action releases.
+    host.hoverLevel = 0.6
+    animate(host)
+
+    expect(action).toHaveBeenCalledTimes(1)
+    expect(host._fireOnFill).toBe(false)
+  })
+
+  test('pour-armed click fires inline on the no-loop paths', () => {
+    const action = jest.fn()
+    const off = makeHost({ useWebGL: false, _fireOnFill: true, onClickAction: action })
+
+    animate(off)
+
+    expect(action).toHaveBeenCalledTimes(1)
+
+    // Reduced-motion consumes a pending fire inline too — and the
+    // consume guard's false arm no-ops when nothing is pending.
+    reducedMotion = true
+
+    const action2 = jest.fn()
+    const host2 = makeHost({
+      gl: makeGl(),
+      program: 'p',
+      quadBuffer: 'b',
+      _fireOnFill: true,
+      onClickAction: action2,
+    })
+
+    animate(host2)
+
+    expect(action2).toHaveBeenCalledTimes(1)
+
+    const action3 = jest.fn()
+
+    animate(makeHost({ onClickAction: action3 })) // _fireOnFill falsy arm
+
+    expect(action3).not.toHaveBeenCalled()
+  })
+
   test('renderWasm no-ops without a handle and measures dt deltas', () => {
     const host = makeHost()
 

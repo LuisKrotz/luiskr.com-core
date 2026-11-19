@@ -192,6 +192,22 @@
   }
 }
 
+// Shared "hot" visuals for option buttons — :focus-visible on every
+// device, :hover only where hover is real (see the gate below). A
+// mixin, not a placeholder: @extend cannot cross the media boundary.
+@mixin pref-option-hot {
+  border-color: var(--text-muted);
+  transform: translateY(to-rem(-$space-3xs)) scale(1.03);
+
+  &::before {
+    opacity: 1;
+  }
+
+  > * {
+    transform: scale(1.04);
+  }
+}
+
 // One selectable preference option (language/grid/etc).
 .pref-option-btn {
   @extend %RESETBTN;
@@ -235,17 +251,18 @@
     transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
-  &:hover,
   &:focus-visible {
-    border-color: var(--text-muted);
-    transform: translateY(to-rem(-$space-3xs)) scale(1.03);
+    @include pref-option-hot;
+  }
 
-    &::before {
-      opacity: 1;
-    }
-
-    > * {
-      transform: scale(1.04);
+  // Sticky-touch guard — a tap leaves the tile :hover-painted until the
+  // next touch on coarse pointers, so a floating ring would sit over a
+  // non-active option (the "glass ghost" report). Real-hover devices
+  // keep the preview; touch devices get the follower on the active
+  // tile only.
+  @media (hover: hover) {
+    &:hover {
+      @include pref-option-hot;
     }
   }
 

@@ -29,6 +29,23 @@ $awc-peek: 10vw;
     transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 
+  // Mobile GPU budget: the permanent will-change pins a composited
+  // layer for the carousel's whole lifetime.
+  @include gpu-budget {
+    will-change: auto;
+    transform: translateY(to-rem($space-2xl - $space-2xs));
+  }
+
+  // Phones: always visible — viewport-detection reveals are a desktop
+  // affordance. --in-view still stamps (it gates autoplay); it just
+  // lands on an already-final box. Source order wins over the
+  // gpu-budget offset above at ≤767px.
+  @media (max-width: 767px) {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
   &.#{$_B_AWC}--in-view {
     opacity: 1;
     transform: translate3d(0, 0, 0);

@@ -417,7 +417,9 @@ export const CARD_STACK_LAYOUT = Object.freeze({
   /** Drag distance (px) before a gesture commits to the deck (versus a
    *  vertical page scroll). */
   DRAG_SLOP: 6,
-  /** Drag fraction of one step that triggers a nav on release. */
+  /** Drag fraction of the card's own width that triggers a nav on
+   *  release — the same travel that walks the incoming neighbour fully
+   *  into the front pose. */
   DRAG_THRESHOLD: 0.22,
   /** Flick velocity (px/ms) that carries a short drag to the next card. */
   FLICK_VEL: 0.35,

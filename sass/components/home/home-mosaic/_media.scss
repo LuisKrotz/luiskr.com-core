@@ -56,6 +56,14 @@
       transform 0.48s $ease-spring,
       opacity 0.48s $ease-spring;
 
+    // Phones: no decode fade — the layer is always at full strength and
+    // simply paints the moment its src lands; the blurred thumb under
+    // it still covers the unloaded state.
+    @media (max-width: 767px) {
+      opacity: 1;
+      transition: none;
+    }
+
     &.home-mosaic-img--loaded {
       opacity: 1;
     }

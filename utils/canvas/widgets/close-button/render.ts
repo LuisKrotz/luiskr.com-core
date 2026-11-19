@@ -32,6 +32,23 @@ const LIQUID_FLOOR = 0.01
 const CLICK_WAVE_S = 0.4
 
 /**
+ * Liquid level that releases a pour-armed click — the fill is
+ * unmistakably read (~half the circle) before the action runs. From 0
+ * at LIQUID_RATE that lands ~0.7s after the tap: the pour IS the close
+ * signature the click asked to show.
+ */
+const CLICK_FIRE_LIQUID = 0.5
+
+/** Releases a pending pour-fire inline — the loop paths that can't pour. */
+function consumeFireOnFill(host: CloseButtonWebGL): void {
+  if (!host._fireOnFill) return
+
+  host._fireOnFill = false
+
+  host.onClickAction?.()
+}
+
+/**
  * Draws one settled frame with the X fully drawn — used under reduced
  * motion or when the loop is stopped so the button stays visible and
  * hover-state still applies (without animating).
@@ -58,10 +75,18 @@ export function animate(host: CloseButtonWebGL): void {
   // this frame ever throws before the re-arm at the bottom.
   host.animId = null
 
-  if (!host.useWebGL) return
+  // Paths that can't pour release a pending click inline — otherwise a
+  // touch/keyboard close would wait on an animation that never runs.
+  if (!host.useWebGL) {
+    consumeFireOnFill(host)
+
+    return
+  }
 
   if (store.getters.getReducedMotion()) {
     renderStatic(host)
+
+    consumeFireOnFill(host)
 
     return
   }
@@ -70,8 +95,10 @@ export function animate(host: CloseButtonWebGL): void {
 
   // Liquid fill: 1.6%/frame — deliberately the slowest channel so the
   // turquoise wash feels like it's pouring rather than toggling
-  // (~1s to fill on hover-in, same on drain).
-  const targetHover = host.isHovered ? 1.0 : 0.0
+  // (~1s to fill on hover-in, same on drain). A pour-armed click pins
+  // the target at 1 so the finger-lift's synthesized mouseleave can't
+  // drain the fill before the fire point.
+  const targetHover = host.isHovered || host._fireOnFill ? 1.0 : 0.0
 
   host.hoverLevel += (targetHover - host.hoverLevel) * LIQUID_RATE
 
@@ -81,6 +108,11 @@ export function animate(host: CloseButtonWebGL): void {
   const targetRot = host.hoverLevel * Math.PI
 
   host.rotation += (targetRot - host.rotation) * ROT_RATE
+
+  // Pour-armed click — release the action once the fill reads: the
+  // liquid IS the close signature, and an instant close hid it
+  // completely on touch devices where no hover precedes the tap.
+  if (host._fireOnFill && host.hoverLevel >= CLICK_FIRE_LIQUID) consumeFireOnFill(host)
 
   // One-time stroke draw-in: +2%/frame → the X draws itself over the
   // first ~50 frames (~830ms) after mount, then stays at 1.

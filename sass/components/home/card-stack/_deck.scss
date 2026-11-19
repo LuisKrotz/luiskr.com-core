@@ -25,7 +25,11 @@
     height: 100%;
     overflow: visible;
     cursor: grab;
-    touch-action: pan-y; // vertical scroll stays native; horizontal is ours
+    // The deck owns every touch gesture inside it — pan-y let the UA
+    // claim a diagonal drift as a scroll/pull mid-swipe (pointercancel,
+    // snap-back, cancelable=false interventions). Interacting with the
+    // deck must never scroll the page.
+    touch-action: none;
     user-select: none;
     -webkit-user-drag: none;
 
@@ -360,13 +364,16 @@
     flex-direction: column;
     width: 100%;
     height: 100%;
-    // The stacked front card is height:auto (copy-grown) — inheriting
-    // its min-height floor keeps the link at the full card box so the
-    // info column's margin-top:auto pins CHECK OUT to the card's
-    // bottom edge even when the description runs short.
+    // Stacked cards are a fixed uniform box (the pile's max-copy
+    // height) — inheriting the min-height floor keeps the link at the
+    // full card box so the info column's margin-top:auto pins CHECK OUT
+    // to the card's bottom edge even when a description runs short.
     min-height: inherit;
     overflow: hidden;
-    border-radius: var(--radius-md);
+    // Edge-to-edge on the stacked cards — the clip must follow the
+    // card's own --radius-lg or the cover leaves a dark wedge inside
+    // the card's corner (the visible "border issue in the corners").
+    border-radius: inherit;
     text-decoration: none;
     color: var(--color-white-raw);
     outline: none;
@@ -387,6 +394,13 @@
       // bottom border, so the image appears to overflow the frame.
       min-height: 0;
     }
+
+    // Fan tiers (pickTier fans at ≥1280 in either orientation) — the
+    // padded frame's inner box wants the tighter radius so the bezel
+    // ring reads as a frame, not edge-to-edge.
+    @media (min-width: 1280px) {
+      border-radius: var(--radius-md);
+    }
   }
 
   // Cover image — the card's top band on stacked layouts (edge to edge,
@@ -400,9 +414,11 @@
     overflow: hidden;
 
     // 768–1023 landscape — left column of the wide card; stretches to
-    // the card's height so the cover fills its half edge to edge.
+    // the card's height so the cover fills its share edge to edge. The
+    // image column leads the sheet (58%), the copy column carries
+    // title + summary + CTA in the remainder.
     @media (min-width: 768px) and (max-width: 1023px) and (orientation: landscape) {
-      flex: 0 0 46%;
+      flex: 0 0 58%;
       align-self: stretch;
       aspect-ratio: auto;
     }
@@ -411,7 +427,11 @@
       position: absolute;
       inset: 0;
       aspect-ratio: auto;
-      border-radius: var(--radius-md);
+      // Follows the link's corner — --radius-md inside the fan's padded
+      // frame, the card's --radius-lg on the stacked side-column band
+      // (a fixed radius there leaves the same corner wedge the link
+      // once did).
+      border-radius: inherit;
 
       // Bezel seam — a hairline inner shadow where the display's glass
       // meets its frame (only the landscape tiers carry the bezel).
@@ -474,17 +494,18 @@
     // this column's geometry (seam-straddle → flush side column) and an
     // untransitioned snap reads as a positioning bug on a slow
     // resize/rotate. The opacity/visibility legs cover the print
-    // snapshot's card freeze. (flex-basis itself can't join — auto↔54%
+    // snapshot's card freeze. (flex-basis itself can't join — auto↔42%
     // is a discrete flip, which would just delay the snap.)
     transition:
       opacity 0.3s ease,
       visibility 0.3s ease,
       padding 0.3s ease;
 
-    // 768–1023 landscape — right column of the wide card; it needs its
-    // own top padding since the cover no longer sits above it.
+    // 768–1023 landscape — right column of the wide card (the cover's
+    // 58% share leaves this the remainder); it needs its own top
+    // padding since the cover no longer sits above it.
     @media (min-width: 768px) and (max-width: 1023px) and (orientation: landscape) {
-      flex: 1 1 54%;
+      flex: 1 1 42%;
       padding-top: var(--space-xl);
     }
 
@@ -553,10 +574,12 @@
   }
 
   // The card's own CMS description — Jost, the first-sentence mobile
-  // summary (info.ts arms the writer with it; the desktop column keeps
-  // the full text in the DOM so SEO reads one as the other's summary).
-  // The ≤4-line visual cap bounds the card on stacked tiers — the
-  // element only renders there (fan tiers hide -card-info entirely).
+  // summary as plain static text (the desktop column keeps the full
+  // body in the DOM so SEO reads one as the other's summary). Never
+  // truncated — the uniform pile height fits the biggest description
+  // across the deck, so the copy always fits inside its card. The
+  // element only renders on stacked tiers (fan tiers hide -card-info
+  // entirely).
   &-card-info-desc {
     font-family: var(--font-desc);
     // One weight rung + a 25% lift toward the surface's primary ink —
@@ -565,10 +588,6 @@
     // the card is always-dark, so the light theme's dark primary ink
     // would dim the mix instead of lifting it.
     font-weight: calc(400 + var(--fw-lift));
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 4;
-    overflow: hidden;
     // The narrowest phones run one step smaller — the card's ~212px
     // text measure already wraps the long CMS copy to many lines.
     font-size: var(--space-lg);
@@ -615,6 +634,14 @@
     &-high {
       opacity: 0;
       transition: opacity 0.45s ease;
+
+      // Phones: no decode fade — the layer is always at full strength
+      // and simply paints the moment its src lands (the LQIP thumb
+      // under it still covers the unloaded state).
+      @media (max-width: 767px) {
+        opacity: 1;
+        transition: none;
+      }
 
       &-loaded {
         opacity: 1;
